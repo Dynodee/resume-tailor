@@ -1,0 +1,143 @@
+{
+ "headline": "Data Analytics | SQL - Tableau - Power BI - dbt - Snowflake - Dashboards & Data Validation",
+ "summary": "Data analytics professional with 6+ years turning big data (large, complex datasets) into business insights the business acts on. Currently a Senior Business Analyst at Northwind Retail Group with deep hands-on experience in SQL, Tableau, Power BI, MicroStrategy, Snowflake, and dbt, partnering with IT and business stakeholders from requirements through UAT sign-off. Completing an M.S. in Computer Science with an AI concentration (expected June 2027).",
+ "projects": [
+  {
+   "id": "basket",
+   "bullets": [
+    {
+     "source_id": "basket_validation",
+     "text": "Surfaced that 1 in 4 products barely sell and that organic items outperform their shelf allocation by 2-3x. Designed the prompting and validation approach so every model-surfaced pattern was checked against source data before informing a recommendation."
+    },
+    {
+     "source_id": "basket_pipeline",
+     "text": "Built an end-to-end Python big data analysis pipeline over 12.4M+ retail transactions, using Claude for LLM-assisted exploration at a scale conventional querying cannot reach."
+    },
+    {
+     "source_id": "basket_pricing",
+     "text": "Modeled how a price cut on the best-selling item would affect sales, using published pricing benchmarks."
+    }
+   ]
+  },
+  {
+   "id": "agents",
+   "bullets": [
+    {
+     "source_id": "ag_graph",
+     "text": "Built a multi-agent system as an explicit LangGraph state machine with planner, researcher, critic, and writer agents. Added supervisor routing and a bounded revision cycle that returns failed reviews for more evidence."
+    },
+    {
+     "source_id": "ag_eval",
+     "text": "Wrote a 18-assertion evaluation harness and 30 unit tests gating termination, citation coverage, and policy compliance."
+    }
+   ]
+  }
+ ],
+ "experience": [
+  {
+   "id": "northwind",
+   "bullets": [
+    {
+     "source_id": "northwind_reqs",
+     "text": "Translate ambiguous business requirements into technical specifications, partnering with IT to build the datasets, cubes, and data reporting pipelines that serve them and meet SLAs."
+    },
+    {
+     "source_id": "northwind_sql",
+     "text": "Write SQL and MDX to map and validate data structures across large reporting systems, then present designs for approval before building in production."
+    },
+    {
+     "source_id": "northwind_pilot",
+     "text": "Lead new reporting pilots end-to-end in MicroStrategy and Excel/SSAS, owning the full test cycle of approach, scenarios, and scripts. Drive UAT through to sign-off."
+    },
+    {
+     "source_id": "northwind_delivery",
+     "text": "Manage delivery like a project by running stakeholder meetings, applying problem-solving to data-validation fixes, and escalating blockers to leadership."
+    }
+   ]
+  },
+  {
+   "id": "harbor",
+   "bullets": [
+    {
+     "source_id": "harbor_perf",
+     "text": "Cut dashboard load time by 75% for 40+ users by rebuilding a slow Tableau dashboard at the data source level."
+    },
+    {
+     "source_id": "harbor_share",
+     "text": "Built Tableau dashboards that 15+ regions relied on for real-time visibility into market share and pricing trends across Nielsen and internal sales data."
+    },
+    {
+     "source_id": "harbor_stack",
+     "text": "Applied problem-solving with Python, SQL, Snowflake, and dbt to troubleshoot and reconcile data quality issues before they reached leadership."
+    },
+    {
+     "source_id": "harbor_retail",
+     "text": "Translated business requirements into dashboard specs for major retail accounts across grocery, club, and e-commerce channels."
+    }
+   ]
+  },
+  {
+   "id": "state",
+   "bullets": [
+    {
+     "source_id": "state_queries",
+     "text": "Wrote queries to catch data errors across large reporting systems, protecting data quality for audit reconciliations."
+    },
+    {
+     "source_id": "state_backlog",
+     "text": "Diagnosed why audit cases stalled in review and documented common causes to improve backlog processing times."
+    }
+   ]
+  }
+ ],
+ "skills": [
+  {
+   "label": "BI & Visualization",
+   "items": [
+    "Tableau",
+    "Power BI",
+    "MicroStrategy",
+    "Excel/SSAS",
+    "Data Modeling",
+    "Exploratory Data Analysis",
+    "Data Storytelling",
+    "Performance Optimization"
+   ]
+  },
+  {
+   "label": "Data & Programming",
+   "items": [
+    "SQL",
+    "dbt",
+    "Snowflake",
+    "Data Warehousing",
+    "Relational Databases",
+    "Python",
+    "MDX",
+    "Cloud Platforms",
+    "Git/GitHub"
+   ]
+  },
+  {
+   "label": "Analytics Delivery",
+   "items": [
+    "Data Validation",
+    "Requirements Gathering",
+    "Technical Specification",
+    "UAT & Test Planning",
+    "Cross-Functional Partnering",
+    "Project Management"
+   ]
+  },
+  {
+   "label": "Applied AI",
+   "items": [
+    "LLM-Assisted Data Analysis",
+    "Prompt Design",
+    "Multi-Agent Orchestration",
+    "LLM Evaluation Harnesses"
+   ]
+  }
+ ],
+ "notes": "replayed model output, first version of the tool"
+}

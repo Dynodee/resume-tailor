@@ -1,0 +1,218 @@
+# Master fact base.
+#
+# This file is the ONLY source of truth the tailoring agent is allowed to draw
+# from. Every bullet it writes must trace back to a fact in here. Keep it a
+# superset: add anything true about your background, even if it does not belong
+# on every resume. The agent selects and rephrases; it never invents.
+
+contact:
+  name: JORDAN RIVERA
+  phone: "555-555-0142"
+  email: jordan.rivera@example.com
+  linkedin: linkedin.com/in/jordan-rivera-example
+  location: Portland, OR
+
+# Headline variants. The agent picks the closest fit to the target role and may
+# re-order the pipe-separated keyword tail, but may not add a claim.
+headlines:
+  - id: ai_forward
+    text: "Applied AI & Analytics | Python - Multi-Agent Systems - LangGraph / MCP - SQL - M.S. Computer Science (AI)"
+    fits: [ai engineer, agentic, llm, machine learning, applied ai, ai/ml]
+  - id: analytics_to_ai
+    text: "Data Analyst transitioning to Agentic AI Engineering | Python - SQL - LLM-Assisted Data Analysis"
+    fits: [junior ai, ai engineer i, associate, career transition]
+  - id: analytics
+    text: "Data & Business Analytics | SQL - Tableau - Power BI - MicroStrategy - Retail & Category Analytics"
+    fits: [data analyst, business analyst, bi, category, reporting, insights]
+
+# Facts the summary may be assembled from. Each must be independently true.
+summary_facts:
+  - "6+ years turning large, complex datasets into decisions the business acts on"
+  - "Currently a Senior Business Analyst at Northwind Retail Group"
+  - "Building agentic AI systems in Python outside of work"
+  - "Designed and shipped a multi-agent orchestration system on LangGraph with MCP tool integration, sandboxed execution, and an automated test suite gating every release"
+  - "Built an end-to-end Python analysis pipeline over 12.4M+ retail transactions using LLM-assisted exploration"
+  - "Completing an M.S. in Computer Science with an AI concentration (expected June 2027)"
+  - "Deep hands-on experience with SQL, Tableau, MicroStrategy, Power BI, Snowflake, and dbt"
+  - "Track record partnering with IT and business stakeholders from requirements through UAT sign-off"
+
+experience:
+  - id: northwind
+    title: Senior Business Analyst
+    company: Northwind Retail Group
+    location: Portland, OR
+    start: March 2024
+    end: Present
+    tags: [analytics, bi, retail, requirements, testing, sql]
+    bullets:
+      - id: northwind_reqs
+        text: "Translate ambiguous business requirements into technical specifications, partnering with IT to build the datasets, cubes, and reporting pipelines that serve them and meet SLAs."
+        keywords: [requirements gathering, technical specification, stakeholder management, data modeling, etl, cross-functional, sla]
+      - id: northwind_sql
+        text: "Write SQL and MDX to map and validate data structures across large reporting systems, then present designs for approval before building in production."
+        keywords: [sql, mdx, data validation, design review, olap]
+      - id: northwind_pilot
+        text: "Lead new reporting pilots end-to-end in MicroStrategy and Excel/SSAS. Own the full test cycle - approach, scenarios, and scripts - and drive UAT through to sign-off."
+        keywords: [microstrategy, ssas, excel, uat, test planning, qa, bi tools]
+      - id: northwind_delivery
+        text: "Manage delivery like a project: stakeholder meetings, data-validation fixes, and escalation of blockers to leadership."
+        keywords: [project management, stakeholder communication, delivery, agile]
+
+  - id: harbor
+    title: Tableau Analyst
+    company: Harbor Beverage Distributors
+    location: Seattle, WA
+    start: June 2021
+    end: March 2024
+    tags: [analytics, bi, retail, python, data engineering]
+    bullets:
+      - id: harbor_stack
+        text: "Used Python, SQL, Snowflake, and dbt to troubleshoot and reconcile data issues before they reached leadership."
+        keywords: [python, sql, snowflake, dbt, data quality, data pipeline, cloud data warehouse]
+      - id: harbor_share
+        text: "Tracked market share and pricing trends across Nielsen and internal sales data. Built Tableau dashboards that 15+ regions relied on for real-time visibility."
+        keywords: [tableau, market share, pricing analysis, nielsen, syndicated data, dashboards, cpg]
+      - id: harbor_perf
+        text: "Rebuilt a slow dashboard at the data source level, cutting load time by 75% for 40+ users."
+        keywords: [performance optimization, tableau, data modeling, query tuning]
+      - id: harbor_retail
+        text: "Turned business requirements into dashboard specs for major retail accounts across grocery, club, and e-commerce channels."
+        keywords: [retail, channel reporting, requirements gathering, category management, customer analytics]
+      - id: harbor_category
+        text: "Supported category management with SKU and assortment recommendations, market share tracking, and price leadership analysis."
+        keywords: [category management, assortment, sku rationalization, price leadership, market share]
+
+  - id: state
+    title: Tax Auditor / Business Analyst
+    company: State Department of Revenue
+    location: Salem, OR
+    start: July 2018
+    end: June 2021
+    tags: [analytics, audit, sql, process]
+    bullets:
+      - id: state_queries
+        text: "Wrote queries to catch data errors across large reporting systems for audit reconciliations."
+        keywords: [sql, data quality, reconciliation, auditing, compliance]
+      - id: state_backlog
+        text: "Diagnosed why audit cases stalled in review and documented common causes to improve backlog processing times."
+        keywords: [process improvement, root cause analysis, documentation, operations]
+
+projects:
+  - id: agents
+    name: Multi-Agent Research System
+    subtitle: "Python, LangGraph, MCP, FastAPI"
+    year: "2026"
+    tags: [ai, agentic, llm, engineering, python]
+    bullets:
+      - id: ag_graph
+        text: "Built a multi-agent system as an explicit LangGraph state machine containing planner, researcher, critic, and writer agents with supervisor routing and a bounded revision cycle that returns failed reviews for more evidence."
+        keywords: [langgraph, multi-agent, state machine, orchestration, agentic ai, agent framework, llm]
+      - id: ag_mcp
+        text: "Exposed research tools over Model Context Protocol (MCP) so any MCP client consumes them through a standard contract; verified end-to-end over a live client handshake."
+        keywords: [mcp, model context protocol, tool use, api design, integration, function calling]
+      - id: ag_sandbox
+        text: "Implemented sandboxed tool execution with deny-by-default egress controls using schema validation, per-call timeouts, and a domain allowlist enforced at the execution boundary rather than inside individual tools."
+        keywords: [security, sandboxing, guardrails, schema validation, ai safety, reliability]
+      - id: ag_eval
+        text: "Wrote a 18-assertion evaluation harness and 30 unit tests gating termination, citation coverage, and policy compliance."
+        keywords: [evaluation, eval harness, testing, pytest, ci, llm evaluation, observability]
+      - id: ag_api
+        text: "Served the orchestrator behind a FastAPI service with Pydantic-typed state and a deterministic mock LLM so the full graph and test suite run without an API key."
+        keywords: [fastapi, pydantic, api, deterministic testing, backend, rest api]
+
+  - id: basket
+    name: LLM-Assisted Analysis of 12.4M+ Retail Transactions
+    subtitle: "Independent Project"
+    year: "2026"
+    tags: [ai, llm, analytics, retail, python]
+    bullets:
+      - id: basket_pipeline
+        text: "Built an end-to-end Python analysis pipeline over 12.4M+ retail transactions, using Claude for LLM-assisted exploration at a scale conventional querying cannot reach."
+        keywords: [python, llm, claude, data pipeline, large-scale data, exploratory analysis]
+      - id: basket_validation
+        text: "Designed the prompting and validation approach so every model-surfaced pattern was checked against source data before informing a recommendation - surfacing that 1 in 4 products barely sell and that organic items outperform their shelf allocation by 2-3x."
+        keywords: [prompt engineering, validation, hallucination mitigation, insights, recommendations, category management]
+      - id: basket_pricing
+        text: "Modeled how a price cut on the best-selling item would affect sales, using published pricing benchmarks."
+        keywords: [pricing analysis, price elasticity, scenario modeling, forecasting, what-if analysis]
+
+education:
+  - degree: "Master's Degree, Computer Science (AI Concentration)"
+    school: Cascade State University
+    dates: "September 2023 - Expected June 2027"
+  - degree: "Bachelor's Degree, Accounting"
+    school: Cascade State University
+    dates: "September 2014 - June 2018"
+
+# Certifications render under Education. Replace the name with the exact
+# credential title (e.g. "Tableau Certified Data Analyst") -- ATS screens
+# match the official name.
+certifications:
+  - name: "Tableau Certified Data Analyst"
+    issuer: Tableau (Salesforce)
+    date: ""
+
+# Skills the agent may surface. Anything not listed here cannot be added to the
+# skills section, no matter how loudly the posting asks for it.
+skills:
+  agentic_ai:
+    label: "Agentic AI & LLM Systems"
+    items:
+      - Multi-Agent Orchestration
+      - LangGraph State Machines
+      - Model Context Protocol (MCP)
+      - Tool-Use & Sandboxed Execution
+      - LLM Evaluation Harnesses
+      - Prompt Design
+      - LLM-Assisted Data Analysis
+  programming:
+    label: "Programming & Data"
+    items:
+      - Python
+      - FastAPI
+      - Pydantic
+      - pytest
+      - SQL
+      - MDX
+      - Snowflake
+      - dbt
+      - Git/GitHub
+      - Cloud Platforms
+      - Relational Databases
+      - Data Warehousing
+  bi:
+    label: "BI & Visualization"
+    items:
+      - Tableau
+      - MicroStrategy
+      - Power BI
+      - Excel/SSAS
+      - Data Modeling
+      - Performance Optimization
+      - Exploratory Data Analysis
+      - Data Storytelling
+  domain:
+    label: "Engineering & Domain"
+    items:
+      - Technical Specification
+      - Data Validation
+      - UAT & Test Planning
+      - Requirements Gathering
+      - Project Management
+      - Cross-Functional Partnering
+      - Retail & Category Analytics
+      - Market Share
+      - SKU/Assortment Recommendations
+      - Price Leadership
+      - Nielsen Syndicated Data
+
+# Claims that are NOT true. The tailor node is shown this list so it does not
+# drift into them when a posting asks. Add to it whenever you catch a near-miss.
+do_not_claim:
+  - "Direct experience with a Trade Promotion Management (TPM) platform"
+  - "A Bachelor's degree in Computer Science (the B.S. is in Accounting)"
+  - "A completed Master's degree (it is in progress, expected June 2027)"
+  - "Professional production deployment of LLM systems inside an employer"
+  - "People-management or direct reports"
+  - "3+ years of professional Python (honest figure is 1-2 years)"
+  - "A specific named cloud platform (AWS, GCP, Azure) -- experience is real but unnamed in this file"

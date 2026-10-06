@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resume-tailor"
+version = "0.1.0"
+description = "Agentic workflow: job link in, ATS-tailored and proofread resume PDF out."
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "reportlab>=4.1",
+    "anthropic>=0.40",
+]
+
+[project.optional-dependencies]
+graph = ["langgraph>=0.2"]
+drive = [
+    "google-api-python-client>=2.120",
+    "google-auth-oauthlib>=1.2",
+    "pypdf>=4.0",
+]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+resume-tailor = "resume_tailor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

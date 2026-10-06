@@ -1,0 +1,114 @@
+{
+ "headline": "Data & Business Analytics | SQL - Tableau - Power BI - dbt - Snowflake - MicroStrategy",
+ "summary": "Senior Business Analyst with 6+ years turning large, complex datasets into business decisions using SQL, Tableau, and Power BI. Delivered dashboards that 15+ regions relied on for real-time visibility, and rebuilt one at the data source to cut load time by 75% for 40+ users.",
+ "experience": [
+  {
+   "id": "northwind",
+   "bullets": [
+    {
+     "source_id": "northwind_sql",
+     "text": "Write SQL to validate data quality and map data structures across large reporting systems, then present designs for approval before building in production."
+    },
+    {
+     "source_id": "northwind_reqs",
+     "text": "Translate ambiguous business requirements into technical specifications, partnering with IT to build the datasets, cubes, and reporting pipelines that serve them and meet SLAs."
+    },
+    {
+     "source_id": "northwind_delivery",
+     "text": "Manage delivery like a project, running stakeholder meetings, resolving data-validation fixes, and escalating blockers to leadership."
+    },
+    {
+     "source_id": "northwind_pilot",
+     "text": "Lead new reporting pilots end-to-end in MicroStrategy and Excel/SSAS, owning the test approach, scenarios, and scripts through UAT sign-off."
+    }
+   ]
+  },
+  {
+   "id": "harbor",
+   "bullets": [
+    {
+     "source_id": "harbor_share",
+     "text": "Built Tableau dashboards that 15+ regions relied on for real-time visibility into market share and pricing trends across Nielsen and internal sales data."
+    },
+    {
+     "source_id": "harbor_perf",
+     "text": "Cut dashboard load time by 75% for 40+ users by rebuilding the dashboard at the data source level."
+    },
+    {
+     "source_id": "harbor_stack",
+     "text": "Reconciled data issues with SQL, Python, Snowflake, and dbt before they reached leadership."
+    },
+    {
+     "source_id": "harbor_retail",
+     "text": "Turned business requirements into dashboard specs for major retail accounts across grocery, club, and e-commerce channels."
+    }
+   ]
+  },
+  {
+   "id": "state",
+   "bullets": [
+    {
+     "source_id": "state_queries",
+     "text": "Wrote queries to catch data errors across large reporting systems for audit reconciliations."
+    },
+    {
+     "source_id": "state_backlog",
+     "text": "Diagnosed why audit cases stalled in review and documented common causes to improve backlog processing times."
+    }
+   ]
+  }
+ ],
+ "projects": [
+  {
+   "id": "basket",
+   "bullets": [
+    {
+     "source_id": "basket_pipeline",
+     "text": "Built an end-to-end Python analysis pipeline over 12.4M+ retail transactions, using Claude for LLM-assisted exploration."
+    },
+    {
+     "source_id": "basket_validation",
+     "text": "Surfaced that 1 in 4 products barely sell and that organic items outperform their shelf allocation by 2-3x, checking every model-surfaced pattern against source data before it informed a recommendation."
+    }
+   ]
+  }
+ ],
+ "skills": [
+  {
+   "label": "Programming & Data",
+   "items": [
+    "SQL",
+    "dbt",
+    "Snowflake",
+    "Python",
+    "Data Warehousing",
+    "Relational Databases"
+   ]
+  },
+  {
+   "label": "BI & Visualization",
+   "items": [
+    "Power BI",
+    "Tableau",
+    "MicroStrategy",
+    "Excel/SSAS",
+    "Data Storytelling",
+    "Data Modeling",
+    "Performance Optimization",
+    "Exploratory Data Analysis"
+   ]
+  },
+  {
+   "label": "Data Practice",
+   "items": [
+    "Data Validation",
+    "Requirements Gathering",
+    "Technical Specification",
+    "UAT & Test Planning",
+    "Project Management",
+    "Cross-Functional Partnering"
+   ]
+  }
+ ],
+ "notes": "replayed model output, after the relevance and anti-stuffing fixes"
+}

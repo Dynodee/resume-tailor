@@ -1,0 +1,30 @@
+Data Analytics Senior Consultant II (Remote, US)
+Allstate
+
+Job Description
+The Data Analytics Consultant II is responsible for leveraging data and analytics to answer moderately complex questions and influence business strategy through communication of findings to management.
+
+Key Responsibilities
+- Makes the business insights derived from data analytics accessible to those without technical skills.
+- Provides technical expertise.
+- Compiles, cleans, organizes, and analyzes moderately complex data to understand business results.
+- Monitors and evaluates business initiatives against key performance indicators and communicates results and recommendations to management.
+- Communicates and presents project information to team and provides presentations/updates to management.
+- Establishes, modifies, documents, and communicates standards of practice around data retrieval, data manipulation, data quality, data reporting and data analytics.
+- Influences strategy through data and analytics.
+
+Essential Qualifications
+- Advanced analytical and problem-solving skills
+- Experience in different programming languages such as SQL
+- Experience working in Microsoft Fabric
+- Experience in different data visualization tools such as Tableau and Power BI
+- General insurance knowledge
+- Strong communication skills, both written and verbal
+- Experience working with Big Data
+- 2 years of data and analytics experience
+
+Skills
+Ad Hoc Analysis, Advanced Analytics, Business Influence, Data Analysis, Data Analytics, Data Build Tool, Data Visualization, Structured Query Language (SQL), Structured Query Language (SQL) Development
+
+Compensation
+$75,100.00 - $126,325.00 annually
