@@ -238,11 +238,10 @@ def _print_accounting(state, cfg, g, y, dim, bold, off, interviewed: bool) -> No
     gaps = [t for t, _, s, _ in rows if s in ("gap", "declined")]
     if gaps:
         print(f"{y}True gaps:{off} " + ", ".join(gaps))
-    questions = [state.gap(t) for t, _, s, _ in rows if s == "ask"]
-    if questions and not interviewed:
-        print(f"{y}Open questions{off} -- re-run with --interview to answer them:")
-        for q in questions[:5]:
-            print(f"  - {q.term}: {q.question}")
+    open_items = [t for t, _, s, _ in rows if s == "ask"]
+    if open_items and not interviewed:
+        print(f"{y}Not yet placed:{off} " + ", ".join(open_items)
+              + f"\n{dim}Re-run with --interview to put any you have done on your resume.{off}")
     if (gaps or related) and not state.want_letter:
         print(f"{dim}Add --letter to address these in a cover letter.{off}")
 

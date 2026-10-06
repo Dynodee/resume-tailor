@@ -286,9 +286,13 @@ def test_confirmed_facts_merge_into_a_copy(master):
     data = {"confirmed": [{"id": "confirmed_ci_cd", "entry_id": "agents", "term": "CI/CD",
                            "text": "Set up GitHub Actions to run the test suite on every push."}],
             "declined": [{"term": "Kubernetes"}]}
+    data["confirmed"].append({"id": "confirmed_looker", "entry_id": "skills", "term": "Looker",
+                              "text": "Looker"})
     merged = resume_source.apply_confirmed(master, data)
     agents = next(e for e in merged["projects"] if e["id"] == "agents")
     assert agents["bullets"][-1]["keywords"] == ["CI/CD"]
+    assert merged["skills"]["interview"] == {"label": "Additional Skills", "items": ["Looker"]}
+    assert "interview" not in master["skills"]
     assert any("Kubernetes" in line for line in merged["do_not_claim"])
     assert len(next(e for e in master["projects"] if e["id"] == "agents")["bullets"]) == 5
 

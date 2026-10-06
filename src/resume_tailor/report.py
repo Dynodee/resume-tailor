@@ -213,16 +213,16 @@ def accounting(state: PipelineState) -> list[tuple[str, str, str, str]]:
             if g and g.disposition == "reframe":
                 return "on_page", f"on the page -- rephrased from {ids}"
             if g and g.disposition == "confirmed":
-                return "on_page", "on the page -- confirmed by you in interview mode"
+                return "on_page", "on the page -- placed by you in interview mode"
             return "on_page", "on the page"
         if g is None:
             return (("gap", "not in your fact base -- cover letter or interview")
                     if unattainable else ("unused", "your fact base supports it; not used"))
         return g.disposition, {
             "reframe": f"can be rephrased from {ids}; not used on this page",
-            "confirmed": "confirmed by you; not used on this page",
+            "confirmed": "placed by you; not used on this page",
             "adjacent": f"related experience ({ids}) -- the cover letter covers the difference",
-            "ask": f"question for you: {g.question}",
+            "ask": "open -- if you have done it, place it with --interview",
             "declined": "you said no -- cover letter or interview topic",
             "gap": "not in your fact base -- cover letter or interview topic",
         }[g.disposition]
@@ -251,8 +251,8 @@ def accounting_line(rows) -> str:
     for _, _, status, _ in rows:
         counts[status] = counts.get(status, 0) + 1
     labels = (("on_page", "on the page"), ("reframe", "rephrasable, unused"),
-              ("confirmed", "confirmed, unused"), ("unused", "supported, unused"),
-              ("adjacent", "related experience"), ("ask", "open questions"),
+              ("confirmed", "placed by you, unused"), ("unused", "supported, unused"),
+              ("adjacent", "related experience"), ("ask", "not yet placed"),
               ("declined", "you said no"), ("gap", "true gaps"))
     return f"{len(rows)} requirements: " + ", ".join(
         f"{counts[k]} {label}" for k, label in labels if counts.get(k))

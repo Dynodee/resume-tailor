@@ -16,8 +16,8 @@ ingest: greenhouse | 6418 chars | 7 section(s) | title=Analytics Engineer
 master: loaded 3 role(s), 2 project(s), 29 skills
 extract: 24 terms (18 from lexicon, 6 new from model) | required=11 preferred=9 mentioned=4
 gaps: reviewer rejected 1 reframe(s) as overstated -- treated as related experience instead
-interview: 1 confirmed, 1 declined -- saved to master_resume.confirmed.yaml
-gaps: 5 requirement(s) not stated in your fact base -- 1 adjacent, 1 confirmed, 1 declined, 2 reframe
+interview: 1 placed, 1 skipped -- saved to master_resume.confirmed.yaml
+gaps: 5 requirement(s) not stated in your fact base -- 1 adjacent, 1 ask, 1 confirmed, 2 reframe
 tailor: revision 0 -- 15 bullets
 tailor: coverage 88.4% overall, 100.0% of the required terms your fact base supports
 grammar: 0 issue(s) remain (3 resolved this pass)
@@ -27,9 +27,9 @@ letter check: 1 issue(s)
 revise letter: pass 1 because of style-sentence-length
 render letter: JORDAN_RIVERA_Acme_Analytics_Engineer_Cover_Letter.pdf, text copy at JORDAN_RIVERA_Acme_Analytics_Engineer_Cover_Letter.txt
 
-Requirements  14 requirements: 12 on the page, 1 related experience, 1 you said no
+Requirements  14 requirements: 12 on the page, 1 related experience, 1 not yet placed
 Related experience (covered in a cover letter): Looker
-True gaps: Kubernetes
+Not yet placed: Kubernetes
 ```
 
 ---
@@ -59,9 +59,9 @@ flowchart TD
 | node | what it does |
 | --- | --- |
 | `ingest` | Fetches the posting. Uses the vendor JSON API for Greenhouse, Lever, Ashby and Workday; falls back to JSON-LD `JobPosting` markup, then to tag-stripping. Splits the text under its own headings. |
-| `load_master` | Loads your fact base, merges in facts you confirmed in interview mode, and loads the keyword lists for your field. |
+| `load_master` | Loads your fact base, merges in skills you placed in interview mode, and loads the keyword lists for your field. |
 | `extract` | Finds the ATS terms. A lexicon with alias tables does the exact matching (the built-in list plus any packs for your field); the model adds whatever the dictionary has never heard of. Priority comes from *which section* a term sat in, not from the model's opinion. Also collects the posting's *exact phrases* (see below). |
-| `gap_analysis` | For every required or preferred term your fact base does not state in so many words, decides: **reframe**, **adjacent**, **ask** or **gap** (see below). A second, skeptical pass reviews every reframe. In `--interview` mode, asks you about the rest. |
+| `gap_analysis` | For every required or preferred term your fact base does not state in so many words, decides: **reframe**, **adjacent**, **ask** or **gap** (see below). A second, skeptical pass reviews every reframe. In `--interview` mode, asks where on your resume each of the rest belongs. |
 | `tailor` | Reads what the role actually does, re-leads each kept bullet with the part that matters for it, then fits the posting's vocabulary where it reads naturally -- constrained to the fact base. |
 | `grammar` | Rule checks (including keyword-stuffing tells), then a copy-edit pass, then applies the edits and re-checks. |
 | `revise` | Loops back to `tailor` with the specific gaps and errors, at most `--max-revisions` times. |
@@ -149,7 +149,7 @@ resume-tailor https://jobs.lever.co/acme/1a2b3c4d
 resume-tailor --text "$(pbpaste)"
 resume-tailor --text-file jd.txt
 
-# answer questions about requirements your fact base does not show
+# place requirements your fact base does not show onto your resume
 resume-tailor <url> --interview
 
 # also write a cover letter in your voice
@@ -194,7 +194,7 @@ sorts every such term into one of four outcomes:
 | --- | --- | --- |
 | **reframe** | a bullet shows this skill in other words | the posting's term may go on the page -- on the cited bullets only |
 | **adjacent** | related, not the same (Tableau vs. Power BI) | the bullet stresses what transfers; the cover letter names the difference |
-| **ask** | plausible, but not in your fact base | a question for you |
+| **ask** | plausible, but not in your fact base | open -- place it with `--interview` |
 | **gap** | nothing backs it | a cover-letter or interview topic |
 
 Reframe is the risky call, so it has guards:
@@ -207,29 +207,39 @@ Reframe is the risky call, so it has guards:
   sends that bullet back to its fact-base wording, and one in the summary or
   headline is flagged for you.
 
-**Interview mode** (`--interview`) turns the open items into questions:
+**Interview mode** (`--interview`) asks one question per open item -- where on
+your resume it belongs:
 
 ```
-? The posting asks for Looker. Have you done this -- at work, in a project, or a
-  course? If so, what did you do?
-  (describe it, 'no', or Enter to skip) > yes, built two Looker explores for finance
-Where was that?
+? Looker (posting: "Experience with Looker or similar BI tools") -- where on your resume does this belong?
   1. Senior Business Analyst - Northwind Retail Group
   2. Tableau Analyst - Harbor Beverage Distributors
-  ...
+  3. Tax Auditor / Business Analyst - State Department of Revenue
+  4. Multi-Agent Research System - Python, LangGraph, MCP, FastAPI
+  5. LLM-Assisted Analysis of 12.4M+ Retail Transactions - Independent Project
+  0. Skills section only
+  Enter to skip > 2
 ```
 
-A yes becomes a new fact (polished, but never adding a name or number your
-answer did not contain) saved to `master_resume.confirmed.yaml` beside your fact
-base, so it is there on every later run. A no is recorded so the term is never
-claimed or asked about again. Your hand-edited fact base is never rewritten.
+Picking a role or project is the yes: the tool writes a bullet there that
+connects the skill to what that role's existing bullets already say. It may not
+add a number or a name the role does not already contain -- if the model tries,
+a plain "Applied Looker in day-to-day work." is used instead. `0` adds the term
+to an "Additional Skills" group. Enter, or anything that is not a listed
+number, skips it.
+
+Everything you place is saved to `master_resume.confirmed.yaml` beside your
+fact base, so it is there on every later run -- open it and edit each bullet to
+say what you actually did. Your hand-edited fact base is never rewritten.
+
+Each placed skill becomes a claim on your resume, so skip anything you have not
+done: a listed skill gets asked about at the phone screen, and a reference or
+background check can cost you the offer.
 
 The change report lists every required and preferred term with its outcome --
-on the page, rephrased from which bullet, confirmed by you, related experience,
-an open question, or a true gap -- so nothing the posting asks for goes
-unaddressed. What it will not do is put a skill on the page that nothing backs:
-a claimed skill gets asked about at the phone screen, and a reference or
-background check can cost you the offer.
+on the page, rephrased from which bullet, placed by you, related experience,
+not yet placed, or a true gap -- so nothing the posting asks for goes
+unaddressed.
 
 ---
 
@@ -386,7 +396,7 @@ was in the orchestration or in the model output.
 - **API key.** Read from `.env` or the environment, never from code. `.env` is
   gitignored, `Config` hides the key from its repr, and a test fails the build
   if anything that looks like an Anthropic key is ever committed.
-- **Your data.** `data/master_resume.yaml`, interview answers
+- **Your data.** `data/master_resume.yaml`, skills placed in interview mode
   (`*.confirmed.yaml`), writing samples, `style.yaml`, learned terms, the whole
   `profiles/` folder and everything in `out/` are gitignored, and a test fails
   the build if any of them is ever tracked. The test suite runs on the fictional

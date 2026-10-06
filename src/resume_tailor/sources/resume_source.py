@@ -422,10 +422,10 @@ def load_confirmed(path: Path) -> dict[str, Any]:
 def save_confirmed(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
-        fh.write("# Answers you gave in interview mode (resume-tailor --interview).\n"
-                 "# 'confirmed' facts are added to your fact base on every run; "
-                 "'declined'\n# terms are never claimed and never asked about again. "
-                 "Edit or delete freely.\n")
+        fh.write("# Skills you placed in interview mode (resume-tailor --interview).\n"
+                 "# Each 'confirmed' bullet was written from the role you put it under and is\n"
+                 "# added to your fact base on every run -- read them and edit the text to say\n"
+                 "# what you actually did. 'declined' terms are never claimed or asked about.\n")
         yaml.safe_dump({"confirmed": data.get("confirmed", []),
                         "declined": data.get("declined", [])},
                        fh, sort_keys=False, allow_unicode=True, width=100)
@@ -436,7 +436,8 @@ def apply_confirmed(master: dict[str, Any], data: dict[str, Any]) -> dict[str, A
 
     A fact tied to a role or project becomes a bullet there, with the posting's
     term as its keyword hint -- which is what makes the term attainable for the
-    tailor. A fact tied to nothing becomes a summary fact. A declined term goes
+    tailor. A fact placed in the skills section joins an "Additional Skills"
+    group. A fact tied to nothing becomes a summary fact. A declined term goes
     on the do-not-claim list.
     """
     import copy
@@ -447,6 +448,13 @@ def apply_confirmed(master: dict[str, Any], data: dict[str, Any]) -> dict[str, A
     for fact in data.get("confirmed", []):
         text = str(fact.get("text", "")).strip()
         if not text:
+            continue
+        if fact.get("entry_id") == "skills":
+            skills = out.setdefault("skills", {}) or {}
+            out["skills"] = skills
+            group = skills.setdefault("interview", {"label": "Additional Skills", "items": []})
+            if text not in group["items"]:
+                group["items"].append(text)
             continue
         entry = entries.get(fact.get("entry_id"))
         if entry is None:

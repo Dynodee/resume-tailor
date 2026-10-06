@@ -147,58 +147,77 @@ def _scripted(*answers):
     return ask
 
 
-def test_interview_confirms_declines_and_remembers(tmp_path):
+def test_interview_places_skills_and_remembers(tmp_path):
     fact_base = tmp_path / "fact_base.yaml"
     shutil.copy(EXAMPLE_MASTER, fact_base)
     # Order: required first (CI/CD, Kubernetes), then preferred (Looker).
-    # Entries menu: northwind, harbor, state, agents, basket -> "4" is agents.
-    ask = _scripted("yes, I set up GitHub Actions to run our pytest suite on every push", "4",
-                    "no", "")
+    # Menu: northwind, harbor, state, agents, basket -> "4" is agents; "0" is skills.
+    ask = _scripted("4", "", "0")
     cfg = _cfg(tmp_path, master_path=fact_base, ask=ask)
-    state = _state(resume_source.load(None, fact_base))
-    out = gap_analysis.analyze(state, cfg, LLM(cfg))
+    out = gap_analysis.analyze(_state(resume_source.load(None, fact_base)), cfg, LLM(cfg))
 
     by = {g.term: g for g in out["gaps"]}
     assert by["CI/CD"].disposition == "confirmed"
-    assert by["Kubernetes"].disposition == "declined"
-    assert by["Looker"].disposition == "ask"
-    assert len(ask.asked) == 4                     # three questions plus "where was that?"
+    assert by["Kubernetes"].disposition == "ask"          # skipped
+    assert by["Looker"].disposition == "confirmed"
+    assert len(ask.asked) == 3                             # one question per item, no yes/no
+    first = ask.asked[0]
+    assert first.startswith("CI/CD -- where on your resume does this belong?")
+    assert "4. Multi-Agent Research System" in first and "0. Skills section only" in first
 
-    saved = resume_source.load_confirmed(cfg.confirmed_path)
-    assert saved["confirmed"][0]["entry_id"] == "agents"
-    assert saved["confirmed"][0]["text"] == ("Set up GitHub Actions to run our pytest suite on "
-                                             "every push.")
-    assert saved["declined"][0]["term"] == "Kubernetes"
+    saved = resume_source.load_confirmed(cfg.confirmed_path)["confirmed"]
+    assert [(f["term"], f["entry_id"]) for f in saved] == [("CI/CD", "agents"),
+                                                          ("Looker", "skills")]
+    assert saved[0]["text"] == "Applied CI/CD in day-to-day work."   # offline template
+    master = out["master"]
+    agents = next(e for e in master["projects"] if e["id"] == "agents")
+    assert agents["bullets"][-1]["keywords"] == ["CI/CD"]
+    assert master["skills"]["interview"]["items"] == ["Looker"]
 
-    # Next run: the confirmed fact is evidence, the declined term is not asked again.
+    # Next run: both placed skills are evidence; only the skipped one is asked again.
     ask2 = _scripted("")
     cfg2 = _cfg(tmp_path, master_path=fact_base, ask=ask2)
     loaded = tailor_node.load_master(PipelineState(), cfg2)["master"]
-    agents = next(e for e in loaded["projects"] if e["id"] == "agents")
-    assert agents["bullets"][-1]["keywords"] == ["CI/CD"]
     out2 = gap_analysis.analyze(_state(loaded), cfg2, LLM(cfg2))
-    by2 = {g.term: g for g in out2["gaps"]}
-    assert "CI/CD" not in by2
-    assert by2["Kubernetes"].disposition == "declined"
-    assert len(ask2.asked) == 1 and "Looker" in ask2.asked[0]
+    assert {g.term for g in out2["gaps"]} == {"Kubernetes", "Trade Promotion Management"}
+    assert len(ask2.asked) == 1 and ask2.asked[0].startswith("Kubernetes")
+
+
+def test_anything_but_a_listed_number_skips(master, tmp_path):
+    ask = _scripted("no", "99", "")
+    cfg = _cfg(tmp_path, ask=ask)
+    out = gap_analysis.analyze(_state(master), cfg, LLM(cfg))
+    assert len(ask.asked) == 3
+    assert not [g for g in out["gaps"] if g.disposition == "confirmed"]
 
 
 def test_interview_never_writes_next_to_the_example(master, tmp_path):
-    ask = _scripted("yes, I used Looker for a month", "1", "", "")
+    ask = _scripted("1", "", "")
     cfg = _cfg(tmp_path, ask=ask)
     gap_analysis.analyze(_state(master), cfg, LLM(cfg))
     assert not cfg.confirmed_path.exists()
 
 
-def test_polished_answer_may_not_add_names_or_numbers(master):
-    g = GapItem(term="CI/CD", question="Have you built CI pipelines?")
+def test_placed_bullet_is_written_from_the_role(master):
+    entries = {e["id"]: e for k in ("experience", "projects") for e in master[k]}
+    g = GapItem(term="CI/CD", evidence="CI/CD for data pipelines")
+
+    llm = ScriptedLLM(facts=[{"text": "Ran CI/CD checks gating every release of the "
+                                      "multi-agent system."}])
+    text = gap_analysis._bullet_for(g, entries["agents"], llm)
+    assert text == "Ran CI/CD checks gating every release of the multi-agent system."
+    prompt = llm.calls[0]["user"]
+    assert "The posting asks for it as: CI/CD for data pipelines" in prompt
+    assert "- Built a multi-agent system as an explicit LangGraph state machine" in prompt
+    assert llm.calls[0]["effort"] == "low"
+
+    # A number or a name the role never mentions means the plain template instead.
     llm = ScriptedLLM(facts=[{"text": "Built Jenkins pipelines deploying 40 services."}])
-    text = gap_analysis._bullet_from_answer(g, "I set up GitHub Actions for our tests", None, llm)
-    assert text == "Set up GitHub Actions for our tests."
-    llm = ScriptedLLM(facts=[{"text": "Set up GitHub Actions to run tests on every push."}])
-    text = gap_analysis._bullet_from_answer(g, "set up github actions to run tests on every push",
-                                            None, llm)
-    assert text == "Set up GitHub Actions to run tests on every push."
+    assert gap_analysis._bullet_for(g, entries["agents"], llm) == \
+        "Applied CI/CD in day-to-day work."
+    # Present tense for a current role.
+    assert gap_analysis._bullet_for(g, entries["northwind"], LLM(Config(offline=True))) == \
+        "Apply CI/CD in day-to-day work."
 
 
 # --- the tailor honours the sorting -----------------------------------------------------------

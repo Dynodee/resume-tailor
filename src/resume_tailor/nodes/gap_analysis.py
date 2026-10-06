@@ -18,9 +18,11 @@ reviewer rejects becomes adjacent. Seniority, credentials and named tools never
 reframe, and anything on the do-not-claim list is a gap before the model sees
 it.
 
-In interview mode (`--interview`) the open items become questions. A yes turns
-into a new fact, saved beside the fact base so it is there on every later run;
-a no is recorded so the term is never claimed or asked about again.
+In interview mode (`--interview`) each open item gets one question: where on
+the resume does it belong? Picking a role or project means yes -- a bullet is
+written there from what that role's existing bullets already say, and saved
+beside the fact base so it is there on every later run. Picking "skills only"
+adds the term to the skills list. Enter skips it.
 """
 
 from __future__ import annotations
@@ -94,13 +96,15 @@ similar, not something they probably also did.
 supported: true only if the bullet's own words demonstrate the skill.
 reason: one sentence."""
 
-FACT_SYSTEM = """You turn an interview answer into one resume bullet.
+BULLET_SYSTEM = """You write one resume bullet saying the candidate used a skill in a specific role.
 
-Use only what the answer says. Keep every number, tool and name it mentions and
-add none it does not. Lead with an action verb; no first-person pronouns; one
-sentence ending with a period. Use present tense if the role is current,
-otherwise past tense. If the answer is too vague for a bullet, return it
-cleaned up rather than embellished."""
+The candidate has confirmed they used this skill in this role but gave no
+details. Write the bullet from what the role's existing bullets already say the
+candidate did, connecting the skill to that work. Use the skill's name exactly
+as given. Add no numbers, tools, employers, products or names beyond the skill
+and what the existing bullets contain, and claim no scope or result they do not
+state. Lead with an action verb; no first-person pronouns; one sentence ending
+with a period. Present tense if the role is current, past tense otherwise."""
 
 
 class _Sorted(BaseModel):
@@ -124,7 +128,7 @@ class _Verdicts(BaseModel):
     verdicts: list[Verdict]
 
 
-class _Fact(BaseModel):
+class _Bullet(BaseModel):
     text: str
 
 
@@ -214,18 +218,16 @@ def analyze(state: PipelineState, cfg: Config, llm: LLM) -> dict:
 
     if cfg.ask is not None:
         askable = [g for g in items if g.term not in said_no | ruled_out]
-        confirmed, declined = _interview(askable, master, cfg, llm)
-        new = {"confirmed": confirmed, "declined": declined}
-        if confirmed or declined:
-            master = resume_source.apply_confirmed(master, new)
+        confirmed, asked = _interview(askable, master, cfg, llm)
+        if confirmed:
+            master = resume_source.apply_confirmed(master, {"confirmed": confirmed})
             if cfg.writable_fact_base:
                 saved = resume_source.load_confirmed(cfg.confirmed_path)
                 saved["confirmed"] += confirmed
-                saved["declined"] += declined
                 resume_source.save_confirmed(cfg.confirmed_path, saved)
-        log.append(f"interview: {len(confirmed)} confirmed, {len(declined)} declined"
+        log.append(f"interview: {len(confirmed)} placed, {asked - len(confirmed)} skipped"
                    + (f" -- saved to {cfg.confirmed_path.name}"
-                      if (confirmed or declined) and cfg.writable_fact_base else ""))
+                      if confirmed and cfg.writable_fact_base else ""))
 
     # A reframe makes its term a keyword hint on the cited bullets. Hints are
     # what the scorer and the tailor treat as evidence, so this is the single
@@ -313,80 +315,88 @@ def _review(items: list[GapItem], master: dict, llm: LLM) -> int:
 
 # --- interview mode -----------------------------------------------------------------------
 
-_NO = {"no", "n", "nope", "never", "none", "not really"}
-_SKIP = {"", "skip", "s", "pass", "?"}
-
-
 def _default_question(g: GapItem) -> str:
     return (f"The posting asks for {g.term}. Have you done this -- at work, in a "
             "project, or a course? If so, what did you do?")
 
 
+SKILLS_ONLY = "skills"
+
+
 def _interview(items: list[GapItem], master: dict, cfg: Config,
-               llm: LLM) -> tuple[list[dict], list[dict]]:
-    entries = [(e["id"], " - ".join(x for x in (e.get("title") or e.get("name", ""),
-                                                e.get("company") or e.get("subtitle", "")) if x))
-               for group in ("experience", "projects") for e in master.get(group, []) or []]
+               llm: LLM) -> tuple[list[dict], int]:
+    """One question per open item: where on the resume does it belong?
+
+    Choosing a place is the yes. A role or project gets a bullet written from
+    that entry's own facts; "skills only" puts the term in the skills list;
+    Enter (or anything that is not a listed number) skips it. Returns the new
+    facts and how many questions were asked.
+    """
+    entries = [e for group in ("experience", "projects") for e in master.get(group, []) or []]
+    menu = "\n".join(f"  {i}. {_label(e)}" for i, e in enumerate(entries, 1))
     today = dt.date.today().isoformat()
     confirmed: list[dict] = []
-    declined: list[dict] = []
     asked = 0
     for g in items:
         if g.disposition not in ("ask", "adjacent", "gap") or asked >= MAX_QUESTIONS:
             continue
-        question = g.question or _default_question(g)
-        answer = cfg.ask(f"{question}\n  (describe it, 'no', or Enter to skip) > ").strip()
+        context = f' (posting: "{g.evidence}")' if g.evidence and not g.evidence.startswith(
+            "from the posting") else ""
+        choice = cfg.ask(f"{g.term}{context} -- where on your resume does this belong?\n"
+                         f"{menu}\n  0. Skills section only\n  Enter to skip > ").strip()
         asked += 1
-        low = answer.lower().strip(" .!")
-        if low in _SKIP:
+        if not choice.isdigit() or int(choice) > len(entries):
             continue
-        g.answer = answer
-        if low in _NO:
-            # "No" to a related-experience item means "not directly": the
-            # related experience is still real and still worth showing.
-            if g.disposition != "adjacent":
-                g.disposition = "declined"
-            declined.append({"term": g.term, "date": today})
-            continue
-        menu = "\n".join(f"  {i}. {label}" for i, (_, label) in enumerate(entries, 1))
-        choice = cfg.ask(f"Where was that?\n{menu}\n  0. Not tied to one role\n  number > ")
-        choice = choice.strip()
-        entry_id = (entries[int(choice) - 1][0]
-                    if choice.isdigit() and 1 <= int(choice) <= len(entries) else "")
-        entry = next((e for group in ("experience", "projects")
-                      for e in master.get(group, []) or [] if e["id"] == entry_id), None)
-        text = _bullet_from_answer(g, answer, entry, llm)
         fid = "confirmed_" + (re.sub(r"[^a-z0-9]+", "_", g.term.lower()).strip("_") or "fact")
-        confirmed.append({"id": fid, "entry_id": entry_id, "term": g.term, "text": text,
-                          "question": question, "answer": answer, "date": today})
+        if choice == "0":
+            fact = {"id": fid, "entry_id": SKILLS_ONLY, "term": g.term, "text": g.term}
+        else:
+            entry = entries[int(choice) - 1]
+            fact = {"id": fid, "entry_id": entry["id"], "term": g.term,
+                    "text": _bullet_for(g, entry, llm)}
+        confirmed.append({**fact, "date": today})
         g.disposition = "confirmed"
         g.source_ids = [fid]
-    return confirmed, declined
+    return confirmed, asked
 
 
-def _clean_answer(answer: str) -> str:
-    text = re.sub(r"^(?:yes|yeah|yep|sure)\b[,.!]?\s*", "", answer.strip(), flags=re.I)
-    text = re.sub(r"^i\s+", "", text, flags=re.I)
-    text = text[:1].upper() + text[1:]
-    return text if text.endswith((".", "!", "?")) else text + "."
+def _label(entry: dict) -> str:
+    return " - ".join(x for x in (entry.get("title") or entry.get("name", ""),
+                                  entry.get("company") or entry.get("subtitle", "")) if x)
 
 
-def _bullet_from_answer(g: GapItem, answer: str, entry: dict | None, llm: LLM) -> str:
-    fallback = _clean_answer(answer)
+def _is_current(entry: dict) -> bool:
+    return str(entry.get("end", "")).strip().lower() in {"present", "current"}
+
+
+def _template_bullet(term: str, entry: dict) -> str:
+    return f"{'Apply' if _is_current(entry) else 'Applied'} {term} in day-to-day work."
+
+
+def _bullet_for(g: GapItem, entry: dict, llm: LLM) -> str:
+    """A bullet for `g.term` under `entry`, written from that entry's own facts.
+
+    The model may connect the skill to work the role already describes, but it
+    may not bring in a number or a name that is neither the skill nor already in
+    the role. If it does, the plain template is used instead.
+    """
+    fallback = _template_bullet(g.term, entry)
     if llm.offline:
         return fallback
-    current = bool(entry) and str(entry.get("end", "")).lower() in {"present", "current"}
-    where = (f"{entry.get('title') or entry.get('name', '')} "
-             f"({'current role' if current else 'past role'})") if entry else "no specific role"
+    facts = [b["text"] for b in entry.get("bullets", [])]
+    dates = f"{entry.get('start', '')} - {entry.get('end', '')}".strip(" -") or entry.get("year", "")
     payload = llm.complete_json(
-        FACT_SYSTEM,
-        f"Requirement: {g.term}\nRole: {where}\nQuestion: {g.question}\nAnswer: {answer}",
-        schema=_Fact, max_tokens=4000, effort="low") or {}
+        BULLET_SYSTEM,
+        f"Skill: {g.term}\n"
+        + (f"The posting asks for it as: {g.evidence}\n" if g.evidence else "")
+        + f"Role: {_label(entry)} ({dates}; {'current' if _is_current(entry) else 'past'} role)\n"
+        + "What the role's bullets already say:\n" + "\n".join(f"- {t}" for t in facts),
+        schema=_Bullet, max_tokens=4000, effort="low") or {}
     text = str(payload.get("text", "")).strip()
-    # The polished bullet may not introduce a number or a name the answer lacks.
-    nums = set(re.findall(r"\d+(?:\.\d+)?", answer))
-    names = {w.lower() for w in re.findall(r"[A-Za-z][\w.+#/-]*", answer)}
+    allowed = " ".join([g.term, _label(entry), *facts])
+    nums = set(re.findall(r"\d+(?:\.\d+)?", allowed))
+    names = {w.lower() for w in re.findall(r"[A-Za-z][\w.+#/&-]*", allowed)}
     added_num = any(n not in nums for n in re.findall(r"\d+(?:\.\d+)?", text))
     added_name = any(w.lower() not in names
-                     for w in re.findall(r"(?<!^)(?<![.!?]\s)\b[A-Z][\w.+#/-]+", text))
+                     for w in re.findall(r"(?<!^)(?<![.!?]\s)\b[A-Z][\w.+#/&-]+", text))
     return fallback if not text or added_num or added_name else text

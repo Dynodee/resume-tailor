@@ -55,7 +55,7 @@ class ScriptedLLM:
             return self.gaps
         if "skeptical reviewer" in system:
             return self.verdicts
-        if "turn an interview answer" in system:
+        if "write one resume bullet" in system:
             return self.facts.pop(0) if self.facts else {"text": "", "entry_id": ""}
         if "describe how a person writes" in system:
             return self.voice or {}
