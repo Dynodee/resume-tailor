@@ -13,8 +13,8 @@ import difflib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .ats import scorer
-from .state import Keyword, PipelineState, ResumeSection, TailoredResume
+from .ats import phrases as phrase_mod, scorer
+from .state import Keyword, PipelineState, Priority, ResumeSection, TailoredResume
 
 UNCHANGED, EDITED, REWRITTEN = "unchanged", "edited", "rewritten"
 
@@ -131,10 +131,17 @@ def write(state: PipelineState, changes: ChangeSet, path: Path) -> Path:
             lines += [
                 f"- Required by the posting but not in your fact base: "
                 f"{', '.join(cov.unattainable)}",
-                "  - If any of these are true for you, add them to "
-                "data/master_resume.yaml and re-run. If not, they are cover-letter or "
-                "interview topics -- never put them on the page.",
+                "  - If any of these are true for you, add them to your fact base (or run "
+                "with --interview) and re-run. If not, they are cover-letter or interview "
+                "topics -- never put them on the page.",
             ]
+        lines.append("")
+
+    rows = accounting(state)
+    if rows:
+        lines += ["## Every requirement, accounted for", "",
+                  "| requirement | priority | status |", "| --- | --- | --- |"]
+        lines += [f"| {term} | {priority} | {detail} |" for term, priority, _, detail in rows]
         lines.append("")
 
     if cov and cov.phrase_items:
@@ -185,11 +192,77 @@ def write(state: PipelineState, changes: ChangeSet, path: Path) -> Path:
     return path
 
 
+def accounting(state: PipelineState) -> list[tuple[str, str, str, str]]:
+    """(term, priority, status, detail) for every required and preferred term.
+
+    The point is that nothing the posting asks for goes unmentioned: each term
+    is on the page, available to rephrase, a question for the user, or a
+    cover-letter topic -- and the report says which.
+    """
+    cov = state.coverage
+    if cov is None:
+        return []
+    page = state.resume.all_text() if state.resume else ""
+    rows: list[tuple[str, str, str, str]] = []
+    seen: set[str] = set()
+
+    def describe(term: str, covered: bool, unattainable: bool) -> tuple[str, str]:
+        g = state.gap(term)
+        ids = ", ".join(f"`{i}`" for i in (g.source_ids if g else []))
+        if covered:
+            if g and g.disposition == "reframe":
+                return "on_page", f"on the page -- rephrased from {ids}"
+            if g and g.disposition == "confirmed":
+                return "on_page", "on the page -- confirmed by you in interview mode"
+            return "on_page", "on the page"
+        if g is None:
+            return (("gap", "not in your fact base -- cover letter or interview")
+                    if unattainable else ("unused", "your fact base supports it; not used"))
+        return g.disposition, {
+            "reframe": f"can be rephrased from {ids}; not used on this page",
+            "confirmed": "confirmed by you; not used on this page",
+            "adjacent": f"related experience ({ids}) -- the cover letter covers the difference",
+            "ask": f"question for you: {g.question}",
+            "declined": "you said no -- cover letter or interview topic",
+            "gap": "not in your fact base -- cover letter or interview topic",
+        }[g.disposition]
+
+    for priority in (Priority.REQUIRED, Priority.PREFERRED):
+        for item in cov.items:
+            kw = item.keyword
+            if kw.priority is not priority or kw.category == "soft":
+                continue
+            status, detail = describe(kw.term, item.covered, kw.term in cov.unattainable)
+            rows.append((kw.term, priority.value, status, detail))
+            seen.add(kw.term.lower())
+    for g in state.gaps:
+        if g.term.lower() in seen:
+            continue
+        status, detail = describe(g.term, phrase_mod.literal_in(g.term, page), True)
+        rows.append((g.term, g.priority.value, status, detail))
+    return rows
+
+
+def accounting_line(rows) -> str:
+    """One line for the terminal: how every requirement was handled."""
+    if not rows:
+        return ""
+    counts: dict[str, int] = {}
+    for _, _, status, _ in rows:
+        counts[status] = counts.get(status, 0) + 1
+    labels = (("on_page", "on the page"), ("reframe", "rephrasable, unused"),
+              ("confirmed", "confirmed, unused"), ("unused", "supported, unused"),
+              ("adjacent", "related experience"), ("ask", "open questions"),
+              ("declined", "you said no"), ("gap", "true gaps"))
+    return f"{len(rows)} requirements: " + ", ".join(
+        f"{counts[k]} {label}" for k, label in labels if counts.get(k))
+
+
 _PHRASE_LABELS = (
     ("exact", "On the page word for word"),
     ("concept", "On the page in other words only -- a search for the posting's wording misses these"),
     ("missing", "Supported by your fact base but not on the page"),
-    ("unsupported", "Not in your fact base -- add any that are true to master_resume.yaml"),
+    ("unsupported", "Not in your fact base -- add any that are true to your fact base"),
 )
 
 
@@ -213,4 +286,5 @@ def _phrase_section(cov) -> list[str]:
     return out
 
 
-__all__ = ["BulletChange", "ChangeSet", "baseline", "compute", "write"]
+__all__ = ["BulletChange", "ChangeSet", "accounting", "accounting_line", "baseline", "compute",
+           "write"]

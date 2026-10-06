@@ -1,0 +1,22 @@
+description: B2B and B2C sales, account management and customer success
+terms:
+  - {term: "B2B Sales", category: skill, aliases: ["b2b", "business-to-business sales"]}
+  - {term: "B2C Sales", category: skill, aliases: ["b2c"]}
+  - {term: "Account Management", category: skill, aliases: ["key accounts", "client relationships", "account growth"]}
+  - {term: "Business Development", category: skill, aliases: ["new business development", "biz dev"]}
+  - {term: "Lead Generation", category: skill, aliases: ["prospecting", "cold calling", "outbound prospecting"]}
+  - {term: "Pipeline Management", category: skill, aliases: ["sales pipeline", "opportunity management"]}
+  - {term: "Quota Attainment", category: skill, aliases: ["sales quota", "quota", "sales targets"]}
+  - {term: "Salesforce", category: tool, aliases: ["salesforce crm", "sfdc"]}
+  - {term: "CRM", category: tool, aliases: ["customer relationship management", "crm software"]}
+  - {term: "Negotiation", category: soft, aliases: ["contract negotiation", "negotiating"]}
+  - {term: "Solution Selling", category: skill, aliases: ["consultative selling", "value selling"]}
+  - {term: "Sales Forecasting", category: skill, aliases: ["revenue forecasting"]}
+  - {term: "Customer Retention", category: skill, aliases: ["churn reduction", "renewals"]}
+  - {term: "Territory Management", category: skill, aliases: ["territory planning"]}
+  - {term: "Sales Presentations", category: skill, aliases: ["product demos", "sales demos"]}
+  - {term: "Upselling", category: skill, aliases: ["cross-selling", "upsell", "expansion revenue"]}
+  - {term: "SaaS Sales", category: skill, aliases: ["software sales", "saas"]}
+  - {term: "LinkedIn Sales Navigator", category: tool, aliases: ["sales navigator"]}
+  - {term: "MEDDIC", category: skill, aliases: ["meddpicc"]}
+  - {term: "Customer Success", category: skill, aliases: ["client success"]}

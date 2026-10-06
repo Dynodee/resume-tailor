@@ -1,0 +1,30 @@
+description: Nursing, clinical care and healthcare administration
+terms:
+  - {term: "Patient Care", category: skill, aliases: ["direct patient care", "patient-centered care", "bedside care"]}
+  - {term: "EHR", category: tool, aliases: ["electronic health records", "electronic health record", "electronic medical records", "emr"]}
+  - {term: "Epic", category: tool, aliases: ["epic systems", "epiccare"]}
+  - {term: "Cerner", category: tool, aliases: ["oracle health"]}
+  - {term: "HIPAA", category: skill, aliases: ["hipaa compliance"]}
+  - {term: "Registered Nurse", category: credential, aliases: ["rn", "rn license"]}
+  - {term: "LPN", category: credential, aliases: ["licensed practical nurse", "lvn", "licensed vocational nurse"]}
+  - {term: "CNA", category: credential, aliases: ["certified nursing assistant"]}
+  - {term: "BLS", category: credential, aliases: ["basic life support"]}
+  - {term: "ACLS", category: credential, aliases: ["advanced cardiac life support"]}
+  - {term: "PALS", category: credential, aliases: ["pediatric advanced life support"]}
+  - {term: "Medication Administration", category: skill, aliases: ["administering medications", "med administration", "medication management"]}
+  - {term: "Care Coordination", category: skill, aliases: ["care management", "case management", "discharge planning"]}
+  - {term: "Clinical Documentation", category: skill, aliases: ["charting", "clinical notes", "patient charting"]}
+  - {term: "Triage", category: skill, aliases: ["patient triage"]}
+  - {term: "Infection Control", category: skill, aliases: ["infection prevention"]}
+  - {term: "Patient Education", category: skill, aliases: ["health education"]}
+  - {term: "Vital Signs", category: skill, aliases: ["vitals"]}
+  - {term: "Phlebotomy", category: skill, aliases: ["venipuncture", "blood draws"]}
+  - {term: "ICD-10", category: skill, aliases: ["icd 10", "icd10", "medical coding"]}
+  - {term: "CPT Coding", category: skill, aliases: ["cpt codes"]}
+  - {term: "Medical Billing", category: skill, aliases: ["revenue cycle management", "claims processing"]}
+  - {term: "Joint Commission", category: credential, aliases: ["jcaho"]}
+  - {term: "Telehealth", category: skill, aliases: ["telemedicine", "virtual care"]}
+  - {term: "Critical Care", category: skill, aliases: ["intensive care", "icu"]}
+  - {term: "Emergency Medicine", category: skill, aliases: ["emergency department", "emergency room"]}
+  - {term: "Medical Terminology", category: skill, aliases: []}
+  - {term: "Clinical Quality Improvement", category: skill, aliases: ["patient safety", "quality of care"]}

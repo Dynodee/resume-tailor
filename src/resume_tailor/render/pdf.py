@@ -167,6 +167,13 @@ def _flowables(resume: TailoredResume, contact: dict, styles, frame_width: float
                 items = ", ".join(str(i) for i in entry.get("items", []))
                 block.append(Paragraph(
                     f"<b>{_escape(label)}:</b> {_escape(items)}", styles["body"]))
+            elif section.kind == "other":
+                title, sub = entry.get("title", ""), entry.get("subtitle", "")
+                block.append(Paragraph(
+                    f"{_escape(title)}" + (f", {_escape(sub)}" if sub else ""),
+                    styles["entry"]))
+                if entry.get("dates"):
+                    block.append(Paragraph(_escape(entry["dates"]), styles["meta"]))
 
             for bi, bullet in enumerate(entry.get("bullets", [])):
                 text = bullet["text"] if isinstance(bullet, dict) else str(bullet)
@@ -249,6 +256,11 @@ def _write_extraction_check(resume: TailoredResume, contact: dict, path: Path) -
             elif section.kind == "skills":
                 lines.append(f"{entry.get('label','')}: "
                              f"{', '.join(str(i) for i in entry.get('items', []))}")
+            elif section.kind == "other":
+                lines.append(", ".join(x for x in (entry.get("title", ""),
+                                                   entry.get("subtitle", "")) if x))
+                if entry.get("dates"):
+                    lines.append(str(entry["dates"]))
             for bullet in entry.get("bullets", []):
                 text = bullet["text"] if isinstance(bullet, dict) else str(bullet)
                 lines.append(f"- {text}")

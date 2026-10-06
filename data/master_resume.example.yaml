@@ -12,6 +12,13 @@ contact:
   linkedin: linkedin.com/in/jordan-rivera-example
   location: Portland, OR
 
+# Section headings. Optional: the defaults are "WORK EXPERIENCE" and "PROJECTS".
+projects_heading: "AI & ANALYTICS PROJECTS"
+
+# Extra vocabulary for your field, from src/resume_tailor/ats/lexicons/
+# (healthcare, finance, marketing, sales, operations, people). Optional.
+# lexicon_packs: [operations]
+
 # Headline variants. The agent picks the closest fit to the target role and may
 # re-order the pipe-separated keyword tail, but may not add a claim.
 headlines:
@@ -151,6 +158,16 @@ certifications:
   - name: "Tableau Certified Data Analyst"
     issuer: Tableau (Salesforce)
     date: ""
+
+# Anything else, shown exactly as written below education: licenses,
+# volunteering, awards, publications. Optional.
+# extra_sections:
+#   - heading: VOLUNTEERING
+#     entries:
+#       - title: Data Volunteer
+#         subtitle: Portland Food Bank
+#         dates: "2022 - Present"
+#         bullets: ["Built the weekly donations dashboard the operations team plans from."]
 
 # Skills the agent may surface. Anything not listed here cannot be added to the
 # skills section, no matter how loudly the posting asks for it.

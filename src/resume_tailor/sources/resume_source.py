@@ -125,6 +125,19 @@ def drive_text(file_id: str, token_path: str = "token.json",
     return raw.decode("utf-8", errors="replace")
 
 
+def read_document(path: Path) -> str:
+    """Plain text of a resume or letter on disk: PDF, Word, or text/Markdown."""
+    suffix = path.suffix.lower()
+    raw = path.read_bytes()
+    if suffix == ".pdf":
+        return _pdf_text(raw)
+    if suffix == ".docx":
+        return _docx_text(raw)
+    if suffix in {".txt", ".md", ".markdown", ".text", ""}:
+        return raw.decode("utf-8", errors="replace")
+    raise ValueError(f"unsupported file type '{suffix}' -- use PDF, DOCX, TXT or MD")
+
+
 def _docx_text(raw: bytes) -> str:
     import zipfile
     from xml.etree import ElementTree
@@ -153,11 +166,28 @@ def _pdf_text(raw: bytes) -> str:
 
 HEAD = re.compile(
     r"^\s*\**\s*(professional summary|summary|profile|work experience|experience|"
-    r"employment|ai & analytics projects|projects|education|skills|"
-    r"technical skills|certifications)\s*\**\s*:?\s*$",
+    r"professional experience|relevant experience|work history|employment|"
+    r"ai & analytics projects|projects|education|education & certifications|"
+    r"education and certifications|skills|technical skills|"
+    r"core competencies|key skills|certifications|licenses|"
+    r"licenses & certifications|licenses and certifications|volunteer experience|"
+    r"volunteering|volunteer|awards|honors|publications|languages)\s*\**\s*:?\s*$",
     re.IGNORECASE,
 )
-BULLET = re.compile(r"^\s*(?:[-•*●▪]|\d+\.)\s+(.*)$")
+# Headings that mean the same section, mapped to the name the parser uses.
+_SAME = {"professional experience": "experience", "relevant experience": "experience",
+         "work history": "experience", "core competencies": "skills",
+         "key skills": "skills", "education & certifications": "education",
+         "education and certifications": "education"}
+# Dashes and asterisks need a space after them ("-5%" is not a bullet); real
+# bullet glyphs do not. PDF text extraction often turns the glyph into \x7f or a
+# private-use character, so those count too.
+BULLET = re.compile(r"^\s*(?:(?:[-*]|\d+\.)\s+|[•●▪◦▸►➢\x7f\uf0b7\uf0a7]\s*)(.*)$")
+YEAR_ONLY = re.compile(r"^\s*(?:[A-Z][a-z]+\s+)?\d{4}\s*$")
+# A bullet that ends on one of these continues on the next line.
+_CONTINUES = {"and", "or", "the", "a", "an", "to", "of", "in", "for", "with", "across",
+              "by", "from", "into", "on", "at", "as", "that", "which", "while", "through",
+              "including", "before", "after", "their", "its", "every", "each", "&"}
 DATES = re.compile(
     r"(?P<start>(?:[A-Z][a-z]+\s+)?\d{4})\s*[-–—to]+\s*"
     r"(?P<end>present|current|(?:[A-Z][a-z]+\s+)?\d{4})",
@@ -181,7 +211,7 @@ def parse_resume_text(text: str) -> dict[str, Any]:
         if not stripped:
             continue
         if m := HEAD.match(line.strip()):
-            current = m.group(1).lower()
+            current = _SAME.get(m.group(1).lower(), m.group(1).lower())
             blocks.setdefault(current, [])
             continue
         blocks.setdefault(current, []).append(stripped)
@@ -198,6 +228,15 @@ def parse_resume_text(text: str) -> dict[str, Any]:
             contact["phone"] = m.group(0)
         if m := re.search(r"linkedin\.com/in/[\w-]+", joined, re.IGNORECASE):
             contact["linkedin"] = m.group(0)
+        for line in header[1:]:
+            if "@" in line or re.search(r"\d{3}[-.\s]\d{4}", line):
+                # The contact line: whatever is not phone, email or a URL is the place.
+                rest = [b.strip() for b in line.split("|")
+                        if b.strip() and "@" not in b and not re.search(r"\d{3}", b)
+                        and "linkedin" not in b.lower() and "http" not in b.lower()]
+                if rest:
+                    contact["location"] = rest[-1]
+                break
         out["contact"] = contact
         tail = [h for h in header[1:] if "|" in h and "@" not in h]
         if tail:
@@ -205,7 +244,10 @@ def parse_resume_text(text: str) -> dict[str, Any]:
 
     for key in ("professional summary", "summary", "profile"):
         if key in blocks:
-            out["summary_facts"] = [s for s in blocks[key] if len(s) > 20]
+            # Lines wrap mid-sentence in a PDF; facts are sentences.
+            joined = " ".join(blocks[key])
+            out["summary_facts"] = [s.strip() for s in re.split(r"(?<=[.!?])\s+", joined)
+                                    if len(s.strip()) > 20]
             break
 
     for key in ("work experience", "experience", "employment"):
@@ -219,22 +261,24 @@ def parse_resume_text(text: str) -> dict[str, Any]:
             break
 
     if "education" in blocks:
-        edu = []
-        lines = blocks["education"]
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            dates = ""
-            if i + 1 < len(lines) and DATES.search(lines[i + 1]):
-                dates = lines[i + 1]
-                i += 1
+        edu: list[dict[str, str]] = []
+        for line in blocks["education"]:
+            # "School | dates" or a bare date range belongs to the degree above it.
+            if edu and ("|" in line or DATES.search(line) or YEAR_ONLY.match(line)):
+                school, _, dates = (x.strip() for x in line.partition("|"))
+                if not dates and (DATES.search(school) or YEAR_ONLY.match(school)):
+                    school, dates = "", school
+                if school and not edu[-1]["school"]:
+                    edu[-1]["school"] = school
+                if dates:
+                    edu[-1]["dates"] = dates
+                continue
             parts = ROLE_SEP.split(line, maxsplit=1)
             edu.append({
                 "degree": parts[0].strip(),
                 "school": parts[1].strip() if len(parts) > 1 else "",
-                "dates": dates.strip(),
+                "dates": "",
             })
-            i += 1
         out["education"] = edu
 
     for key in ("skills", "technical skills"):
@@ -256,10 +300,35 @@ def parse_resume_text(text: str) -> dict[str, Any]:
         if key not in {"header", "professional summary", "summary", "profile",
                        "work experience", "experience", "employment", "projects",
                        "ai & analytics projects", "education", "skills",
-                       "technical skills"}:
+                       "technical skills", "core competencies", "key skills"}:
             out["unparsed"][key] = lines
 
     return out
+
+
+def _split_role(line: str) -> tuple[str, str]:
+    """ "Title - Company" or "Title, Company, Inc." -> (title, company).
+
+    A dash wins unless the text before it already has a comma, which means the
+    comma was the separator: "Analyst, State of California - Tax Board".
+    """
+    line = line.strip().strip("*")
+    parts = ROLE_SEP.split(line, maxsplit=1)
+    if len(parts) > 1 and "," not in parts[0]:
+        return parts[0].strip(), parts[1].strip()
+    if ", " in line:
+        title, company = line.split(", ", 1)
+        return title.strip(), company.strip()
+    return (parts[0].strip(), parts[1].strip()) if len(parts) > 1 else (line, "")
+
+
+def _continues(previous: str, line: str) -> bool:
+    """Is `line` the wrapped remainder of the bullet before it?"""
+    prev = previous.rstrip()
+    if not prev or prev.endswith((".", "!", "?")):
+        return False
+    last = prev.split()[-1].lower() if prev.split() else ""
+    return line[:1].islower() or prev.endswith((",", ";", "-", "/")) or last in _CONTINUES
 
 
 def _parse_entries(lines: list[str], prefix: str) -> list[dict[str, Any]]:
@@ -276,18 +345,26 @@ def _parse_entries(lines: list[str], prefix: str) -> list[dict[str, Any]]:
                     "keywords": [],
                 })
             continue
+        if current is not None and current["bullets"] and _continues(
+                current["bullets"][-1]["text"], line):
+            current["bullets"][-1]["text"] += " " + line.strip()
+            continue
         if d := DATES.search(line):
             if current is not None:
                 current["start"] = d.group("start")
                 current["end"] = d.group("end")
+                if "|" in line:
+                    current["location"] = line.split("|", 1)[1].strip()
+            continue
+        if current is not None and prefix != "role" and YEAR_ONLY.match(line):
+            current["year"] = line.strip()
             continue
         counter += 1
-        parts = ROLE_SEP.split(line, maxsplit=1)
+        head, sub = _split_role(line)
         current = {
             "id": f"{prefix}{counter}",
-            "title" if prefix == "role" else "name": parts[0].strip().strip("*"),
-            "company" if prefix == "role" else "subtitle":
-                parts[1].strip().strip("*") if len(parts) > 1 else "",
+            "title" if prefix == "role" else "name": head,
+            "company" if prefix == "role" else "subtitle": sub,
             "start": "", "end": "", "location": "", "tags": [], "bullets": [],
         }
         entries.append(current)
@@ -324,6 +401,68 @@ def merge(base: dict[str, Any], parsed: dict[str, Any]) -> dict[str, Any]:
     if parsed.get("skills"):
         out["skills"] = {**(base.get("skills") or {}), **parsed["skills"]}
     out["do_not_claim"] = base.get("do_not_claim", [])
+    return out
+
+
+# --- interview answers ----------------------------------------------------------
+#
+# Facts the user confirms in interview mode live in a sidecar file next to the
+# fact base (<name>.confirmed.yaml), merged in at load time. They are kept out
+# of the fact base itself because rewriting a hand-edited YAML file through a
+# serialiser throws away the user's comments and ordering.
+
+def load_confirmed(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"confirmed": [], "declined": []}
+    data = _load_yaml(path)
+    return {"confirmed": list(data.get("confirmed") or []),
+            "declined": list(data.get("declined") or [])}
+
+
+def save_confirmed(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        fh.write("# Answers you gave in interview mode (resume-tailor --interview).\n"
+                 "# 'confirmed' facts are added to your fact base on every run; "
+                 "'declined'\n# terms are never claimed and never asked about again. "
+                 "Edit or delete freely.\n")
+        yaml.safe_dump({"confirmed": data.get("confirmed", []),
+                        "declined": data.get("declined", [])},
+                       fh, sort_keys=False, allow_unicode=True, width=100)
+
+
+def apply_confirmed(master: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
+    """Merge confirmed facts into a copy of the fact base.
+
+    A fact tied to a role or project becomes a bullet there, with the posting's
+    term as its keyword hint -- which is what makes the term attainable for the
+    tailor. A fact tied to nothing becomes a summary fact. A declined term goes
+    on the do-not-claim list.
+    """
+    import copy
+
+    out = copy.deepcopy(master)
+    entries = {e.get("id"): e for group in ("experience", "projects")
+               for e in out.get(group, []) or []}
+    for fact in data.get("confirmed", []):
+        text = str(fact.get("text", "")).strip()
+        if not text:
+            continue
+        entry = entries.get(fact.get("entry_id"))
+        if entry is None:
+            out.setdefault("summary_facts", []).append(text)
+            continue
+        bullets = entry.setdefault("bullets", [])
+        if any(b.get("id") == fact.get("id") for b in bullets):
+            continue
+        bullets.append({"id": fact.get("id"), "text": text,
+                        "keywords": [fact["term"]] if fact.get("term") else [],
+                        "confirmed": str(fact.get("date", ""))})
+    for item in data.get("declined", []):
+        term = str(item.get("term", "")).strip()
+        if term:
+            out.setdefault("do_not_claim", []).append(
+                f"Experience with {term} (you said no in interview mode)")
     return out
 
 

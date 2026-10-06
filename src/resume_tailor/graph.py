@@ -1,13 +1,21 @@
 """The workflow as an explicit state machine.
 
-    ingest -> extract -> load_master -> tailor -> grammar -+-> render -> END
-                                          ^                |
-                                          +---- revise <---+
+    ingest -> load_master -> extract -> gap_analysis -> tailor -> grammar -+-> render -+-> END
+                                                         ^                 |           |
+                                                         +---- revise <----+           |
+                                                                                       v
+                         END <- render_letter <-+- letter_check <- letter <------- (--letter)
+                                                |                    ^
+                                                +-> revise_letter ---+
 
-The revision edge is the part that makes this agentic rather than a script: the
-grammar and coverage results decide whether the tailoring runs again, and the
-loop is bounded so it always terminates. Everything else is deliberately linear,
-because a step that cannot fail in an interesting way does not need a router.
+The revision edges are the part that makes this agentic rather than a script:
+the grammar and coverage results decide whether the tailoring runs again, and
+the letter checker decides whether the letter does. Both loops are bounded so
+they always terminate. Everything else is deliberately linear, because a step
+that cannot fail in an interesting way does not need a router.
+
+The fact base loads before extraction so the person's lexicon packs are in
+place when the posting is scanned.
 
 LangGraph is used when available; the same graph runs on a small built-in
 executor otherwise, so the package has no hard orchestration dependency.
@@ -19,7 +27,7 @@ from typing import Any, Callable
 
 from .config import Config
 from .llm import LLM
-from .nodes import extract_keywords, grammar, ingest, render, tailor
+from .nodes import extract_keywords, gap_analysis, grammar, ingest, letter, render, tailor
 from .state import PipelineState
 
 Node = Callable[[PipelineState], dict[str, Any]]
@@ -28,22 +36,34 @@ Node = Callable[[PipelineState], dict[str, Any]]
 def build_nodes(cfg: Config, llm: LLM) -> dict[str, Node]:
     return {
         "ingest": lambda s: ingest.ingest(s, cfg),
-        "extract": lambda s: extract_keywords.extract(s, cfg, llm),
         "load_master": lambda s: tailor.load_master(s, cfg),
+        "extract": lambda s: extract_keywords.extract(s, cfg, llm),
+        "gap_analysis": lambda s: gap_analysis.analyze(s, cfg, llm),
         "tailor": lambda s: tailor.tailor(s, cfg, llm),
         "grammar": lambda s: grammar.review_and_revise(s, cfg, llm),
         "revise": lambda s: grammar.bump_revision(s),
         "render": lambda s: render.render(s, cfg),
+        "letter": lambda s: letter.write(s, cfg, llm),
+        "letter_check": lambda s: letter.check(s, cfg),
+        "revise_letter": lambda s: letter.bump_revision(s),
+        "render_letter": lambda s: letter.render(s, cfg),
     }
 
 
 EDGES = [
-    ("ingest", "extract"),
-    ("extract", "load_master"),
-    ("load_master", "tailor"),
+    ("ingest", "load_master"),
+    ("load_master", "extract"),
+    ("extract", "gap_analysis"),
+    ("gap_analysis", "tailor"),
     ("tailor", "grammar"),
     ("revise", "tailor"),
+    ("letter", "letter_check"),
+    ("revise_letter", "letter"),
 ]
+
+
+def wants_letter(state: PipelineState) -> str:
+    return "letter" if state.want_letter and state.pdf_path else "end"
 
 
 def run(state: PipelineState, cfg: Config, llm: LLM,
@@ -62,30 +82,33 @@ def _apply(state: PipelineState, update: dict[str, Any]) -> PipelineState:
 
 def _run_simple(state: PipelineState, nodes: dict[str, Node],
                 on_step: Callable[[str, PipelineState], None] | None) -> PipelineState:
-    order = ["ingest", "extract", "load_master"]
-    for name in order:
+    def step(name: str) -> None:
+        nonlocal state
         state = _apply(state, nodes[name](state))
         if on_step:
             on_step(name, state)
+
+    for name in ("ingest", "load_master", "extract", "gap_analysis"):
+        step(name)
         if state.errors and name == "ingest" and state.posting is None:
             return state
 
     while True:
-        state = _apply(state, nodes["tailor"](state))
-        if on_step:
-            on_step("tailor", state)
-        state = _apply(state, nodes["grammar"](state))
-        if on_step:
-            on_step("grammar", state)
+        step("tailor")
+        step("grammar")
         if grammar.should_revise(state) == "render":
             break
-        state = _apply(state, nodes["revise"](state))
-        if on_step:
-            on_step("revise", state)
+        step("revise")
+    step("render")
 
-    state = _apply(state, nodes["render"](state))
-    if on_step:
-        on_step("render", state)
+    if wants_letter(state) == "letter":
+        while True:
+            step("letter")
+            step("letter_check")
+            if letter.should_revise(state) == "render_letter":
+                break
+            step("revise_letter")
+        step("render_letter")
     return state
 
 
@@ -102,12 +125,18 @@ def _run_langgraph(state: PipelineState, nodes: dict[str, Node],
     builder.add_conditional_edges(
         "grammar", grammar.should_revise, {"revise": "revise", "render": "render"}
     )
-    builder.add_edge("render", END)
+    builder.add_conditional_edges("render", wants_letter, {"letter": "letter", "end": END})
+    builder.add_conditional_edges(
+        "letter_check", letter.should_revise,
+        {"revise_letter": "revise_letter", "render_letter": "render_letter"},
+    )
+    builder.add_edge("render_letter", END)
 
     graph = builder.compile()
-    # recursion_limit bounds the loop at the framework level as well as in the
-    # router, so a bug in should_revise cannot spin forever.
-    config = {"recursion_limit": 4 + 4 * (state.max_revisions + 1)}
+    # recursion_limit bounds the loops at the framework level as well as in the
+    # routers, so a bug in a router cannot spin forever.
+    config = {"recursion_limit": 8 + 4 * (state.max_revisions + 1)
+              + 4 * (state.letter_max_revisions + 1)}
 
     final: PipelineState | None = None
     for chunk in graph.stream(state, config=config, stream_mode="updates"):
@@ -125,6 +154,10 @@ def mermaid() -> str:
     lines += [
         "    grammar -->|coverage below target or grammar errors| revise",
         "    grammar -->|clean| render",
-        "    render --> END([done])",
+        "    render -->|cover letter requested| letter",
+        "    render -->|no letter| END([done])",
+        "    letter_check -->|problems found| revise_letter",
+        "    letter_check -->|clean| render_letter",
+        "    render_letter --> END",
     ]
     return "\n".join(lines)

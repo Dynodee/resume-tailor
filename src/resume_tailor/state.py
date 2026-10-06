@@ -134,7 +134,9 @@ class ResumeBullet(BaseModel):
 
 class ResumeSection(BaseModel):
     heading: str
-    kind: Literal["summary", "experience", "projects", "education", "skills"]
+    # "other" is anything the fact base lists under extra_sections -- licenses,
+    # volunteering, publications -- rendered as written, never tailored.
+    kind: Literal["summary", "experience", "projects", "education", "skills", "other"]
     entries: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -173,6 +175,55 @@ class GrammarIssue(BaseModel):
     suggestion: str = ""
 
 
+Disposition = Literal["reframe", "adjacent", "ask", "confirmed", "declined", "gap"]
+
+
+class GapItem(BaseModel):
+    """One posting requirement the fact base does not state in so many words.
+
+    reframe   -- a bullet shows this skill in other words; the posting's term may
+                 go on the page, but only on the cited bullets
+    adjacent  -- related experience, not the same thing; the bullet stresses what
+                 transfers and the cover letter names the difference
+    ask       -- plausible but unknown; a question for the user
+    confirmed -- the user said yes in interview mode; now a fact
+    declined  -- the user said no; recorded so it is never claimed or asked again
+    gap       -- nothing backs it; a cover-letter topic
+    """
+
+    term: str
+    priority: Priority = Priority.REQUIRED
+    disposition: Disposition = "gap"
+    source_ids: list[str] = Field(default_factory=list)
+    rationale: str = ""
+    question: str = ""
+    answer: str = ""
+    evidence: str = ""                # the posting line that asked for it
+
+
+class LetterClaim(BaseModel):
+    source_id: str                    # fact id the claim rests on
+    claim: str
+
+
+class LetterParagraph(BaseModel):
+    text: str
+    claims: list[LetterClaim] = Field(default_factory=list)
+
+
+class CoverLetter(BaseModel):
+    greeting: str = ""
+    paragraphs: list[LetterParagraph] = Field(default_factory=list)
+    sign_off: str = ""
+    gaps_addressed: list[str] = Field(default_factory=list)
+
+    def body(self) -> str:
+        return "\n\n".join(p.text.strip() for p in self.paragraphs if p.text.strip())
+
+    def all_text(self) -> str:
+        return "\n\n".join(x for x in (self.greeting, self.body(), self.sign_off) if x)
+
+
 class PipelineState(BaseModel):
     """Everything the graph carries from start to finish."""
 
@@ -180,24 +231,35 @@ class PipelineState(BaseModel):
     job_url: str | None = None
     job_text: str | None = None       # paste path, bypasses the fetcher
     resume_ref: str | None = None     # path or Drive file id, backend decides
+    want_letter: bool = False         # also write a cover letter
 
     # stage outputs
     posting: JobPosting | None = None
     keywords: list[Keyword] = Field(default_factory=list)
     phrases: list[ExactPhrase] = Field(default_factory=list)
     master: dict[str, Any] = Field(default_factory=dict)
+    gaps: list[GapItem] = Field(default_factory=list)
     resume: TailoredResume | None = None
     coverage: CoverageReport | None = None
     grammar_issues: list[GrammarIssue] = Field(default_factory=list)
     pdf_path: str | None = None
+    letter: CoverLetter | None = None
+    letter_issues: list[GrammarIssue] = Field(default_factory=list)
+    letter_path: str | None = None
 
     # control
     revisions: int = 0
     max_revisions: int = 2
     coverage_target: float = 80.0     # stop revising once required coverage clears this
     phrase_target: float = 70.0       # ...and once exact-phrase coverage clears this
+    letter_revisions: int = 0
+    letter_max_revisions: int = 2
     log: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+
+    def gap(self, term: str) -> GapItem | None:
+        low = term.lower()
+        return next((g for g in self.gaps if g.term.lower() == low), None)
 
     def note(self, msg: str) -> None:
         self.log.append(msg)

@@ -11,3 +11,12 @@ credentials.json
 # Your real fact base: contact details and work history. Never commit it.
 # The repository ships data/master_resume.example.yaml instead.
 data/master_resume.yaml
+
+# Everything personal that the newer features write: profiles (fact base,
+# writing samples, style, learned terms), interview answers, and the same files
+# in data/ for the single-user layout.
+profiles/
+data/*.confirmed.yaml
+data/writing_samples/
+data/style.yaml
+data/lexicon.yaml

@@ -1,0 +1,30 @@
+description: Accounting, FP&A, audit and corporate finance
+terms:
+  - {term: "GAAP", category: skill, aliases: ["us gaap", "generally accepted accounting principles"]}
+  - {term: "IFRS", category: skill, aliases: ["international financial reporting standards"]}
+  - {term: "Financial Reporting", category: skill, aliases: ["financial statements", "financial statement preparation"]}
+  - {term: "Month-End Close", category: skill, aliases: ["month end close", "period close", "financial close", "close process"]}
+  - {term: "Account Reconciliation", category: skill, aliases: ["account reconciliations", "bank reconciliations", "balance sheet reconciliations"]}
+  - {term: "Accounts Payable", category: skill, aliases: ["a/p"]}
+  - {term: "Accounts Receivable", category: skill, aliases: ["a/r", "collections"]}
+  - {term: "General Ledger", category: skill, aliases: ["journal entries", "gl accounting"]}
+  - {term: "FP&A", category: skill, aliases: ["financial planning and analysis", "financial planning & analysis"]}
+  - {term: "Budgeting", category: skill, aliases: ["budget management", "annual budget", "budget planning"]}
+  - {term: "Variance Analysis", category: skill, aliases: ["budget variance", "variance reporting"]}
+  - {term: "Financial Modeling", category: skill, aliases: ["financial models", "three-statement model", "dcf"]}
+  - {term: "SOX Compliance", category: skill, aliases: ["sox", "sarbanes-oxley", "sarbanes oxley", "internal controls"]}
+  - {term: "Audit", category: skill, aliases: ["internal audit", "external audit", "audits"]}
+  - {term: "Tax Preparation", category: skill, aliases: ["tax returns", "tax compliance"]}
+  - {term: "CPA", category: credential, aliases: ["certified public accountant"]}
+  - {term: "CFA", category: credential, aliases: ["chartered financial analyst"]}
+  - {term: "QuickBooks", category: tool, aliases: ["quickbooks online"]}
+  - {term: "NetSuite", category: tool, aliases: ["oracle netsuite"]}
+  - {term: "SAP", category: tool, aliases: ["sap erp", "s/4hana", "sap s/4hana"]}
+  - {term: "ERP Systems", category: tool, aliases: ["erp", "enterprise resource planning"]}
+  - {term: "Cash Flow Management", category: skill, aliases: ["cash flow", "cash management", "cash forecasting"]}
+  - {term: "Accruals", category: skill, aliases: ["accrual accounting", "accrued expenses"]}
+  - {term: "Fixed Assets", category: skill, aliases: ["depreciation", "fixed asset accounting"]}
+  - {term: "Payroll", category: skill, aliases: ["payroll processing"]}
+  - {term: "Revenue Recognition", category: skill, aliases: ["asc 606", "rev rec"]}
+  - {term: "Cost Accounting", category: skill, aliases: ["standard costing", "cost analysis"]}
+  - {term: "Hyperion", category: tool, aliases: ["oracle hyperion", "essbase"]}

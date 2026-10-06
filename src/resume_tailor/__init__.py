@@ -6,4 +6,4 @@ from .llm import LLM
 from .state import PipelineState
 
 __all__ = ["Config", "LLM", "PipelineState", "run"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

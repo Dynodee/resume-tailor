@@ -88,6 +88,18 @@ Not supported by the fact base -- do not attempt these: {unattainable}
 # EXACT PHRASES A RECRUITER WILL SEARCH FOR
 {exact_phrases}
 
+# REQUIREMENTS YOU MAY MEET BY REPHRASING
+Each line names a posting term, the bullet ids whose facts show it, and why.
+Rewrite those bullets so the posting's term appears where the fact supports it.
+Use the term on those bullets only -- never on other bullets, in the summary,
+in the headline, or in the skills section.
+{reframes}
+
+# RELATED EXPERIENCE -- show what transfers, never name the term
+For each line, emphasise the transferable part of the cited bullets. Do not
+write the posting's term itself; the cover letter covers the difference.
+{adjacent}
+
 # CLAIMS THAT ARE NOT TRUE -- never imply these
 {do_not_claim}
 
@@ -116,10 +128,11 @@ Produce the tailored resume as JSON:
 }}
 
 SUMMARY: sentence one says who the candidate is for THIS role, with years of
-experience and at most three of the posting's tools. Sentence two gives one
-concrete, numeric proof point that matters to this employer. Mention the M.S.
-only if the posting asks for a degree or the role is AI-focused. No lists of
-five tools -- the skills section does that.
+experience where the fact base states them, and at most three of the posting's
+skills or tools. Sentence two gives one concrete, numeric proof point that
+matters to this employer. Mention a degree or credential only if the posting
+asks for one or it sets the candidate apart for this role. No lists of five
+skills -- the skills section does that.
 
 BUDGET: keep every role (gaps read worse than an imperfect fit), newest first,
 with two to four bullets each -- most relevant first. Projects get at most three
@@ -131,6 +144,16 @@ groups irrelevant to this role."""
 
 def load_master(state: PipelineState, cfg: Config) -> dict:
     master = resume_source.load(state.resume_ref, cfg.master_path)
+    confirmed = resume_source.load_confirmed(cfg.confirmed_path)
+    if confirmed["confirmed"] or confirmed["declined"]:
+        master = resume_source.apply_confirmed(master, confirmed)
+
+    # The vocabulary this person's field uses, plus terms learned on earlier
+    # runs. Loaded before extraction so the exact-match pass can see them.
+    lexicon.reset()
+    packs = [str(p) for p in master.get("lexicon_packs") or []]
+    added = sum(lexicon.load_pack(p) for p in packs)
+    added += lexicon.load_learned(cfg.learned_lexicon_path)
     counts = (
         f"{len(master.get('experience', []))} role(s), "
         f"{len(master.get('projects', []))} project(s), "
@@ -138,7 +161,12 @@ def load_master(state: PipelineState, cfg: Config) -> dict:
     )
     log = list(state.log)
     log.append(f"master: loaded {counts}"
-               + (f" from {state.resume_ref}" if state.resume_ref else ""))
+               + (f" from {state.resume_ref}" if state.resume_ref else "")
+               + (f" | {len(confirmed['confirmed'])} confirmed fact(s) from interview mode"
+                  if confirmed["confirmed"] else ""))
+    if packs or added:
+        log.append(f"master: lexicon packs {', '.join(packs) or '(none)'} -- "
+                   f"{added} extra term(s) loaded")
     return {"master": master, "log": log}
 
 
@@ -162,6 +190,36 @@ def _allowed_skills(master: dict) -> set[str]:
     return {s.strip().lower()
             for group in (master.get("skills") or {}).values()
             for s in group.get("items", [])}
+
+
+def projects_heading(master: dict) -> str:
+    return str(master.get("projects_heading") or "PROJECTS").upper()
+
+
+def experience_heading(master: dict) -> str:
+    return str(master.get("experience_heading") or "WORK EXPERIENCE").upper()
+
+
+def _extra_sections(master: dict) -> list[ResumeSection]:
+    """Licenses, volunteering, awards... rendered exactly as the fact base has them.
+
+    They are evidence a screen can match ("RN license", "PMP"), but nothing in
+    them is rephrased, so they need no traceability check.
+    """
+    out = []
+    for si, section in enumerate(master.get("extra_sections") or []):
+        entries = []
+        for ei, e in enumerate(section.get("entries") or []):
+            entries.append({
+                "title": e.get("title", ""), "subtitle": e.get("subtitle", ""),
+                "dates": e.get("dates", ""),
+                "bullets": [{"source_id": f"extra{si}_{ei}_{bi}", "text": str(b)}
+                            for bi, b in enumerate(e.get("bullets") or [])],
+            })
+        if entries:
+            out.append(ResumeSection(heading=str(section.get("heading", "")).upper()
+                                     or "ADDITIONAL", kind="other", entries=entries))
+    return out
 
 
 def _education_section(master: dict) -> ResumeSection:
@@ -204,6 +262,11 @@ def _render_master(master: dict) -> str:
         lines.append("\n## Certifications")
         lines.extend(f"- {c.get('name', '')} ({c.get('issuer', '')})"
                      for c in master["certifications"])
+    for section in master.get("extra_sections") or []:
+        lines.append(f"\n## {section.get('heading', 'Other')} (shown on the page as written)")
+        for e in section.get("entries") or []:
+            lines.append("- " + " | ".join(x for x in (e.get("title", ""), e.get("subtitle", ""),
+                                                    e.get("dates", "")) if x))
     lines.append("\n## Skills available")
     for group in (master.get("skills") or {}).values():
         lines.append(f"- {group['label']}: {', '.join(group.get('items', []))}")
@@ -223,10 +286,14 @@ def _role_brief(posting, limit: int = 5000) -> str:
     return text[:limit]
 
 
+# Never evidence: what is not true, and imported items not yet found in the original.
+_NOT_EVIDENCE = ("do_not_claim", "unverified")
+
+
 def master_text(master: dict) -> str:
     import yaml as _yaml
 
-    return _yaml.safe_dump({k: v for k, v in master.items() if k != "do_not_claim"})
+    return _yaml.safe_dump({k: v for k, v in master.items() if k not in _NOT_EVIDENCE})
 
 
 def _hard_required(keywords: list[Keyword]) -> list[Keyword]:
@@ -283,7 +350,11 @@ def _feedback_block(state: PipelineState) -> str:
             parts.append("\nRequired terms the fact base supports but the draft does not "
                          "use. Work each in where it reads naturally; skip any that "
                          "would need forcing:")
-            parts.extend(f"  - {k.term}" for k in missing)
+            for k in missing:
+                g = state.gap(k.term)
+                where = (f" -- only on bullets {', '.join(g.source_ids)}"
+                         if g and g.disposition in ("reframe", "confirmed") else "")
+                parts.append(f"  - {k.term}{where}")
     if state.coverage and state.coverage.phrase_items:
         other_words = [p.text for p in state.coverage.phrases("concept") if not p.soft]
         absent = [p.text for p in state.coverage.phrases("missing") if not p.soft]
@@ -379,7 +450,7 @@ def _offline_tailor(master: dict, keywords: list[Keyword]) -> TailoredResume:
     projects = sorted(master.get("projects", []), key=entry_score, reverse=True)
     if projects:
         sections.append(ResumeSection(
-            heading="AI & ANALYTICS PROJECTS", kind="projects",
+            heading=projects_heading(master), kind="projects",
             entries=[{
                 "name": p.get("name", ""), "subtitle": p.get("subtitle", ""),
                 "year": p.get("year", ""), "end": "",
@@ -391,7 +462,7 @@ def _offline_tailor(master: dict, keywords: list[Keyword]) -> TailoredResume:
 
     experience = master.get("experience", [])  # already newest-first in the YAML
     sections.append(ResumeSection(
-        heading="WORK EXPERIENCE", kind="experience",
+        heading=experience_heading(master), kind="experience",
         entries=[{
             "title": e.get("title", ""), "company": e.get("company", ""),
             "location": e.get("location", ""), "start": e.get("start", ""),
@@ -403,6 +474,7 @@ def _offline_tailor(master: dict, keywords: list[Keyword]) -> TailoredResume:
     ))
 
     sections.append(_education_section(master))
+    sections.extend(_extra_sections(master))
 
     skill_groups = []
     for group in (master.get("skills") or {}).values():
@@ -486,12 +558,13 @@ def _assemble(payload: dict, master: dict,
         return ResumeSection(heading=heading, kind=kind, entries=out_entries) if out_entries else None
 
     sections: list[ResumeSection] = []
-    if proj := build("projects", "projects", "AI & ANALYTICS PROJECTS"):
+    if proj := build("projects", "projects", projects_heading(master)):
         sections.append(proj)
-    if exp := build("experience", "experience", "WORK EXPERIENCE"):
+    if exp := build("experience", "experience", experience_heading(master)):
         sections.append(exp)
 
     sections.append(_education_section(master))
+    sections.extend(_extra_sections(master))
 
     skill_entries = []
     for group in payload.get("skills", []) or []:
@@ -541,11 +614,15 @@ def audit(resume: TailoredResume, master: dict) -> list[str]:
     this whole pipeline is a plausible sentence about something you have not
     done, and that failure is invisible in a coverage score.
     """
-    import yaml as _yaml
+    return audit_text(resume.all_text(), master_text(master),
+                      "appears in the tailored resume but not in the fact base")
 
-    master_text = _yaml.safe_dump(master).lower()
+
+def audit_text(text: str, reference: str, message: str) -> list[str]:
+    """Proper nouns in `text` that `reference` never mentions."""
+    master_text = reference.lower()
     suspects: dict[str, int] = {}
-    for token in _TECHY.findall(resume.all_text()):
+    for token in _TECHY.findall(text):
         if token in _STOP or len(token) < 3:
             continue
         low = token.lower()
@@ -555,8 +632,56 @@ def audit(resume: TailoredResume, master: dict) -> list[str]:
         if low not in master_text and not any(
                 len(st) >= 4 and st in master_text for st in stems):
             suspects[token] = suspects.get(token, 0) + 1
-    return [f"'{t}' appears in the tailored resume but not in the fact base"
-            for t in sorted(suspects)]
+    return [f"'{t}' {message}" for t in sorted(suspects)]
+
+
+# --- rephrasing discipline ---------------------------------------------------------
+
+def _term_forms(term: str) -> list[str]:
+    return list(dict.fromkeys([term, *lexicon.surface_forms(term)]))
+
+
+def enforce_reframes(resume: TailoredResume, master: dict, gaps) -> list[str]:
+    """Hold reframed and adjacent terms to the bullets that earned them.
+
+    A reframe says "bullet X shows this skill in other words", so the posting's
+    term may appear on bullet X. On any other bullet it would be a claim with
+    nothing behind it, so that bullet goes back to its fact-base wording. An
+    adjacent term may not appear on any rewritten bullet. The summary and
+    headline are free text with no source to revert to; a term there is
+    flagged for the human instead.
+    """
+    facts = _bullet_index(master)
+    notes: list[str] = []
+    rules = [(g, set(g.source_ids) if g.disposition == "reframe" else set())
+             for g in gaps if g.disposition in ("reframe", "adjacent")]
+    if not rules:
+        return notes
+    for section in resume.sections:
+        if section.kind not in ("experience", "projects"):
+            continue
+        for entry in section.entries:
+            for bullet in entry.get("bullets", []):
+                sid = bullet.get("source_id", "")
+                original = facts.get(sid, {}).get("text", "")
+                if not original:
+                    continue
+                for gap, allowed in rules:
+                    if sid in allowed:
+                        continue
+                    if any(phrase_mod.literal_in(f, bullet["text"]) and not
+                           phrase_mod.literal_in(f, original) for f in _term_forms(gap.term)):
+                        bullet["text"] = original
+                        notes.append(f"reverted: bullet {sid} used '{gap.term}', which "
+                                     "its fact does not show")
+                        break
+    for where, text in (("summary", resume.summary), ("headline", resume.headline)):
+        for gap, _ in rules:
+            if any(phrase_mod.literal_in(f, text) for f in _term_forms(gap.term)):
+                evidence = ", ".join(gap.source_ids) or "nothing direct"
+                notes.append(f"fabrication check: '{gap.term}' is in the {where}; your "
+                             f"evidence for it is {evidence}")
+    return notes
 
 
 # --- the node -----------------------------------------------------------------
@@ -578,6 +703,12 @@ def tailor(state: PipelineState, cfg: Config, llm: LLM) -> dict:
                                     master_text(master)).unattainable
         unsupported = phrase_mod.unsupported_terms(state.phrases, master_text(master))
         forbidden = list(dict.fromkeys([*unattainable, *unsupported]))
+        reframes = [g for g in state.gaps if g.disposition == "reframe"]
+        adjacent = [g for g in state.gaps if g.disposition == "adjacent"]
+        # Reframed terms are attainable (their bullets carry them as hints), but
+        # a skills-group label naming one would be a claim with no bullet behind
+        # it, so labels are checked against them too.
+        label_forbidden = [*forbidden, *(g.term for g in reframes), *(g.term for g in adjacent)]
         exact_lines = [f"- {p.text}" for p in state.phrases
                        if not p.soft and p.text not in unsupported]
         payload = llm.complete_json(
@@ -593,13 +724,20 @@ def tailor(state: PipelineState, cfg: Config, llm: LLM) -> dict:
                 mentioned=", ".join(by_priority[Priority.MENTIONED][:25]) or "(none)",
                 do_not_claim="\n".join(f"- {c}" for c in master.get("do_not_claim", []))
                              or "(none listed)",
+                reframes="\n".join(f"- {g.term}: bullets {', '.join(g.source_ids)} -- {g.rationale}"
+                                   for g in reframes) or "(none)",
+                adjacent="\n".join(f"- {g.term}: bullets {', '.join(g.source_ids) or '(any)'}"
+                                   f" -- {g.rationale}" for g in adjacent) or "(none)",
                 master=_render_master(master),
                 feedback=_feedback_block(state),
             ),
-            max_tokens=6000,
+            max_tokens=16000,
+            effort="high",
         )
-        resume, dropped = _assemble(payload or {}, master, forbidden)
+        resume, dropped = _assemble(payload or {}, master, label_forbidden)
         resume = order_sections(resume, keywords)
+        for note in enforce_reframes(resume, master, state.gaps):
+            errors.append(note)
         note = str((payload or {}).get("notes", "")).strip()
         log.append(f"tailor: revision {state.revisions} -- {_count(resume)} bullets"
                    + (f" | {len(dropped)} dropped as untraceable" if dropped else ""))

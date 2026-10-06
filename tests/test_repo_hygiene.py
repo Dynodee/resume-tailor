@@ -27,10 +27,15 @@ def _tracked_files() -> list[Path]:
     return [ROOT / line for line in out.splitlines() if line]
 
 
+NEVER_TRACKED_DIRS = ("out/", "profiles/", "data/writing_samples/")
+NEVER_TRACKED_FILES = ("data/style.yaml", "data/lexicon.yaml")
+
+
 def test_no_private_files_are_tracked():
     tracked = {p.relative_to(ROOT).as_posix() for p in _tracked_files()}
     assert not (tracked & NEVER_TRACKED), tracked & NEVER_TRACKED
-    assert not [t for t in tracked if t.startswith("out/")]
+    assert not [t for t in tracked if t.startswith(NEVER_TRACKED_DIRS)]
+    assert not [t for t in tracked if t in NEVER_TRACKED_FILES or t.endswith(".confirmed.yaml")]
 
 
 def test_no_api_keys_in_tracked_files():
@@ -48,7 +53,8 @@ def test_no_api_keys_in_tracked_files():
 def test_gitignore_covers_private_files():
     ignore = (ROOT / ".gitignore").read_text()
     for entry in (".env", "data/master_resume.yaml", "out/", "token.json",
-                  "credentials.json"):
+                  "credentials.json", "profiles/", "data/*.confirmed.yaml",
+                  "data/writing_samples/", "data/style.yaml", "data/lexicon.yaml"):
         assert entry in ignore, entry
 
 

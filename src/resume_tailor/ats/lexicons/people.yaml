@@ -1,0 +1,20 @@
+description: HR, recruiting and people operations
+terms:
+  - {term: "Talent Acquisition", category: skill, aliases: ["recruiting", "full-cycle recruiting", "full cycle recruiting"]}
+  - {term: "Sourcing Candidates", category: skill, aliases: ["candidate sourcing", "boolean search"]}
+  - {term: "Onboarding", category: skill, aliases: ["new hire onboarding", "employee onboarding"]}
+  - {term: "Employee Relations", category: skill, aliases: ["er investigations", "workplace investigations"]}
+  - {term: "HRIS", category: tool, aliases: ["human resources information system", "hr information system"]}
+  - {term: "Workday HCM", category: tool, aliases: ["workday"]}
+  - {term: "ADP", category: tool, aliases: ["adp workforce now"]}
+  - {term: "Applicant Tracking Systems", category: tool, aliases: ["applicant tracking system", "greenhouse", "lever", "icims"]}
+  - {term: "Compensation and Benefits", category: skill, aliases: ["total rewards", "benefits administration", "compensation planning"]}
+  - {term: "Performance Management", category: skill, aliases: ["performance reviews", "performance appraisals"]}
+  - {term: "Learning and Development", category: skill, aliases: ["l&d", "training programs", "training and development"]}
+  - {term: "Employment Law", category: skill, aliases: ["labor law", "flsa", "fmla", "eeo compliance"]}
+  - {term: "SHRM-CP", category: credential, aliases: ["shrm cp", "shrm-scp", "shrm certified"]}
+  - {term: "PHR", category: credential, aliases: ["professional in human resources", "sphr"]}
+  - {term: "Employee Engagement", category: skill, aliases: ["engagement surveys", "retention programs"]}
+  - {term: "DEI", category: skill, aliases: ["diversity equity and inclusion", "diversity, equity and inclusion", "diversity and inclusion"]}
+  - {term: "Workforce Planning", category: skill, aliases: ["headcount planning"]}
+  - {term: "HR Business Partner", category: title, aliases: ["hrbp"]}

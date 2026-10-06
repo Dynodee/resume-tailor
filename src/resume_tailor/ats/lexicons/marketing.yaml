@@ -1,0 +1,28 @@
+description: Digital, brand, content and growth marketing
+terms:
+  - {term: "SEO", category: skill, aliases: ["search engine optimization"]}
+  - {term: "SEM", category: skill, aliases: ["search engine marketing", "paid search", "ppc", "pay-per-click"]}
+  - {term: "Content Marketing", category: skill, aliases: ["content strategy", "content creation"]}
+  - {term: "Social Media Marketing", category: skill, aliases: ["social media management", "paid social", "organic social"]}
+  - {term: "Email Marketing", category: skill, aliases: ["email campaigns", "lifecycle marketing", "drip campaigns"]}
+  - {term: "Marketing Automation", category: skill, aliases: ["marketing automation platforms"]}
+  - {term: "HubSpot", category: tool, aliases: []}
+  - {term: "Marketo", category: tool, aliases: ["adobe marketo"]}
+  - {term: "Salesforce Marketing Cloud", category: tool, aliases: ["marketing cloud", "exacttarget"]}
+  - {term: "Google Analytics", category: tool, aliases: ["ga4", "universal analytics"]}
+  - {term: "Google Ads", category: tool, aliases: ["adwords", "google adwords"]}
+  - {term: "Meta Ads", category: tool, aliases: ["facebook ads", "instagram ads", "meta business suite"]}
+  - {term: "Brand Management", category: skill, aliases: ["brand strategy", "brand positioning", "branding"]}
+  - {term: "Campaign Management", category: skill, aliases: ["campaign execution", "integrated campaigns", "campaign planning"]}
+  - {term: "Demand Generation", category: skill, aliases: ["demand gen"]}
+  - {term: "Go-to-Market Strategy", category: skill, aliases: ["go-to-market", "gtm strategy", "product launches"]}
+  - {term: "Market Research", category: skill, aliases: ["consumer research", "customer research", "competitive analysis"]}
+  - {term: "Copywriting", category: skill, aliases: ["ad copy", "copy writing"]}
+  - {term: "Public Relations", category: skill, aliases: ["media relations", "press releases"]}
+  - {term: "Marketing Analytics", category: skill, aliases: ["campaign analytics", "marketing attribution", "marketing roi"]}
+  - {term: "Customer Segmentation", category: skill, aliases: ["audience segmentation", "buyer personas"]}
+  - {term: "Conversion Rate Optimization", category: skill, aliases: ["cro", "landing page optimization"]}
+  - {term: "Influencer Marketing", category: skill, aliases: ["creator partnerships"]}
+  - {term: "Event Marketing", category: skill, aliases: ["trade shows", "field marketing"]}
+  - {term: "Adobe Creative Suite", category: tool, aliases: ["adobe creative cloud", "photoshop", "illustrator", "indesign"]}
+  - {term: "Product Marketing", category: skill, aliases: ["positioning and messaging"]}

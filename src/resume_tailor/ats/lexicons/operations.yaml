@@ -1,0 +1,24 @@
+description: Operations, supply chain, logistics and process improvement
+terms:
+  - {term: "Supply Chain Management", category: skill, aliases: ["supply chain", "scm"]}
+  - {term: "Logistics", category: skill, aliases: ["transportation management", "freight", "shipping and receiving"]}
+  - {term: "Inventory Management", category: skill, aliases: ["inventory control", "stock management", "cycle counts"]}
+  - {term: "Procurement", category: skill, aliases: ["purchasing", "strategic sourcing"]}
+  - {term: "Vendor Management", category: skill, aliases: ["supplier management", "supplier relationships", "vendor relations"]}
+  - {term: "Lean", category: skill, aliases: ["lean manufacturing", "lean principles", "kaizen", "5s"]}
+  - {term: "Six Sigma", category: credential, aliases: ["lean six sigma", "dmaic", "green belt", "black belt"]}
+  - {term: "Process Improvement", category: skill, aliases: ["continuous improvement", "process optimization", "workflow optimization"]}
+  - {term: "S&OP", category: skill, aliases: ["sales and operations planning"]}
+  - {term: "Warehouse Operations", category: skill, aliases: ["warehouse management", "distribution center", "fulfillment"]}
+  - {term: "WMS", category: tool, aliases: ["warehouse management system"]}
+  - {term: "Quality Control", category: skill, aliases: ["quality assurance", "qa/qc"]}
+  - {term: "OSHA", category: credential, aliases: ["osha compliance", "workplace safety"]}
+  - {term: "Operations Management", category: skill, aliases: ["operational excellence", "operations leadership"]}
+  - {term: "PMP", category: credential, aliases: ["project management professional"]}
+  - {term: "Scheduling", category: skill, aliases: ["production scheduling", "workforce scheduling"]}
+  - {term: "Capacity Planning", category: skill, aliases: []}
+  - {term: "Cost Reduction", category: skill, aliases: ["cost savings", "cost optimization"]}
+  - {term: "Contract Management", category: skill, aliases: ["contract administration"]}
+  - {term: "Risk Management", category: skill, aliases: ["risk assessment", "risk mitigation"]}
+  - {term: "Change Management", category: skill, aliases: ["organizational change"]}
+  - {term: "Customer Service", category: skill, aliases: ["customer support", "client service"]}

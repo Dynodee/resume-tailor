@@ -109,7 +109,8 @@ def _from_llm(llm: LLM, posting: JobPosting) -> list[Keyword]:
         USER.format(title=posting.title or "(not stated)",
                     company=posting.company or "(not stated)",
                     sections=sections or posting.raw_text[:8000]),
-        max_tokens=3000,
+        max_tokens=8000,
+        effort="low",
     )
     out: list[Keyword] = []
     for item in payload or []:

@@ -13,6 +13,7 @@ naive matcher; the alias table is what closes that gap in both directions.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 # canonical term -> aliases (all matched case-insensitively, word-boundary aware)
 LEXICON: dict[str, dict] = {}
@@ -208,10 +209,125 @@ def _pattern(term: str) -> re.Pattern[str]:
     return re.compile(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", re.IGNORECASE)
 
 
+def _compile(term: str, meta: dict) -> list[tuple[str, re.Pattern[str]]]:
+    return [(term, _pattern(term))] + [(a, _pattern(a)) for a in meta["aliases"]]
+
+
 _COMPILED: dict[str, list[tuple[str, re.Pattern[str]]]] = {
-    term: [(term, _pattern(term))] + [(a, _pattern(a)) for a in meta["aliases"]]
-    for term, meta in LEXICON.items()
+    term: _compile(term, meta) for term, meta in LEXICON.items()
 }
+
+
+# --- domain packs and learned terms --------------------------------------------
+#
+# The built-in list above is tech, data and BI. Everyone else's vocabulary --
+# nursing, accounting, marketing -- lives in packs under ats/lexicons/, loaded
+# per person (the fact base's `lexicon_packs`). Terms the model discovers on a
+# real posting are saved to a per-person lexicon.yaml and loaded the same way,
+# so the exact-match half of extraction gets better with use.
+#
+# Loading never overrides a term already present: the curated core wins.
+
+PACKS_DIR = Path(__file__).with_name("lexicons")
+_CORE = {term: {"category": m["category"], "aliases": list(m["aliases"])}
+         for term, m in LEXICON.items()}
+_CATEGORIES = {"skill", "tool", "credential", "title", "soft", "other"}
+
+
+def _register(term: str, category: str, aliases: list[str]) -> bool:
+    term = str(term).strip()
+    if not term or term in LEXICON:
+        return False
+    if any(normalize(term) == normalize(t) for t in LEXICON):
+        return False
+    meta = {"category": category if category in _CATEGORIES else "skill",
+            "aliases": [str(a).strip() for a in aliases if str(a).strip()]}
+    LEXICON[term] = meta
+    _COMPILED[term] = _compile(term, meta)
+    return True
+
+
+def load_terms(entries: list[dict]) -> int:
+    """Register {term, category, aliases} entries; returns how many were new."""
+    return sum(_register(e.get("term", ""), str(e.get("category", "skill")),
+                         list(e.get("aliases") or []))
+               for e in entries if isinstance(e, dict))
+
+
+def _read_yaml(path: Path) -> dict:
+    import yaml
+
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
+def available_packs() -> dict[str, str]:
+    """Pack name -> one-line description."""
+    return {p.stem: str(_read_yaml(p).get("description", ""))
+            for p in sorted(PACKS_DIR.glob("*.yaml"))}
+
+
+def load_pack(name: str) -> int:
+    path = PACKS_DIR / f"{name}.yaml"
+    if not path.exists():
+        raise ValueError(f"unknown lexicon pack '{name}' "
+                         f"(available: {', '.join(available_packs())})")
+    return load_terms(_read_yaml(path).get("terms") or [])
+
+
+def load_learned(path: Path) -> int:
+    if not path.exists():
+        return 0
+    return load_terms(_read_yaml(path).get("terms") or [])
+
+
+def remember(path: Path, keywords) -> int:
+    """Save terms the model found that no list knew about, for next time.
+
+    Soft skills are skipped: they are scored at a quarter weight and never
+    steer anything, so learning them only adds noise.
+    """
+    import yaml
+
+    new = [{"term": k.term, "category": k.category, "aliases": list(k.aliases)}
+           for k in keywords if k.term not in LEXICON and k.category != "soft"]
+    if not new:
+        return 0
+    existing = _read_yaml(path).get("terms", []) if path.exists() else []
+    known = {normalize(e.get("term", "")) for e in existing}
+    added = [e for e in new if normalize(e["term"]) not in known]
+    if not added:
+        return 0
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        fh.write("# Terms the model found in postings that no lexicon knew about.\n"
+                 "# Loaded on every run so they are matched exactly. Edit freely.\n")
+        yaml.safe_dump({"terms": existing + added}, fh, sort_keys=False,
+                       allow_unicode=True)
+    return len(added)
+
+
+def suggest_packs(text: str, min_hits: int = 3) -> list[str]:
+    """Packs whose vocabulary shows up in `text` -- used when importing a resume."""
+    out = []
+    for path in sorted(PACKS_DIR.glob("*.yaml")):
+        hits = 0
+        for entry in _read_yaml(path).get("terms") or []:
+            forms = [entry.get("term", ""), *(entry.get("aliases") or [])]
+            if any(f and _pattern(f).search(text) for f in forms):
+                hits += 1
+        if hits >= min_hits:
+            out.append(path.stem)
+    return out
+
+
+def reset() -> None:
+    """Back to the built-in list only (tests, and a second run in one process)."""
+    LEXICON.clear()
+    _COMPILED.clear()
+    for term, meta in _CORE.items():
+        LEXICON[term] = {"category": meta["category"], "aliases": list(meta["aliases"])}
+        _COMPILED[term] = _compile(term, LEXICON[term])
 
 
 def find_terms(text: str) -> dict[str, dict]:

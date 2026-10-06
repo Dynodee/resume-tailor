@@ -56,6 +56,8 @@ def _units(resume: TailoredResume) -> dict[str, str]:
     if resume.summary:
         units["summary"] = resume.summary
     for si, section in enumerate(resume.sections):
+        if section.kind == "other":
+            continue                      # extra sections are shown as written
         for ei, entry in enumerate(section.entries):
             for bi, bullet in enumerate(entry.get("bullets", [])):
                 text = bullet["text"] if isinstance(bullet, dict) else str(bullet)
@@ -102,6 +104,8 @@ def _mechanical_fixes(resume: TailoredResume) -> int:
 
     changed = 0
     for section in resume.sections:
+        if section.kind == "other":
+            continue
         for entry in section.entries:
             for bullet in entry.get("bullets", []):
                 if not isinstance(bullet, dict):
@@ -139,7 +143,8 @@ def review_and_revise(state: PipelineState, cfg: Config, llm: LLM) -> dict:
         ) or "(no automated findings)"
         unit_text = "\n".join(f"[{k}] {v}" for k, v in units.items())
         payload = llm.complete_json(
-            SYSTEM, USER.format(lint=lint_text, units=unit_text), max_tokens=4000
+            SYSTEM, USER.format(lint=lint_text, units=unit_text), max_tokens=12000,
+            effort="medium",
         )
         edits: dict[str, str] = {}
         for item in payload or []:

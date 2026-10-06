@@ -1,3 +1,3 @@
-from . import job_posting, resume_source
+from . import importer, job_posting, resume_source
 
-__all__ = ["job_posting", "resume_source"]
+__all__ = ["importer", "job_posting", "resume_source"]
