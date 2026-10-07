@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     if argv and argv[0] in SUBCOMMANDS:
         try:
             return SUBCOMMANDS[argv[0]](argv[1:])
-        except (LLMError, ValueError, FileNotFoundError) as exc:
+        except (LLMError, ValueError, OSError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
     return tailor_command(argv)
@@ -338,7 +338,8 @@ def style_command(argv: list[str]) -> int:
         prog="resume-tailor style",
         description="Learn your writing voice from cover letters you wrote.")
     parser.add_argument("action", choices=["add", "rebuild", "show"])
-    parser.add_argument("files", nargs="*", type=Path, help="letters to add (PDF, DOCX, TXT, MD)")
+    parser.add_argument("files", nargs="*", type=Path,
+                        help="letters to add (PDF, DOCX, TXT, MD), or a folder of them")
     parser.add_argument("--profile", help="whose samples: profiles/<name>/")
     parser.add_argument("--model", help="Anthropic model id")
     args = parser.parse_args(argv)

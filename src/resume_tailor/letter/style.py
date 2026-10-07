@@ -126,15 +126,49 @@ def average(stats: list[dict[str, float]]) -> dict[str, float]:
 
 # --- samples on disk ----------------------------------------------------------------------
 
+SUPPORTED = (".pdf", ".docx", ".txt", ".md")
+
+
+def resolve_letters(paths: list[Path]) -> list[Path]:
+    """Turn what the user typed into letter files.
+
+    A folder means every supported file inside it. A name without its
+    extension -- easy to type on Windows, which hides extensions -- is matched
+    to the one file with that name and a supported extension.
+    """
+    out: list[Path] = []
+    for raw in paths:
+        path = Path(raw)
+        if path.is_dir():
+            found = sorted(p for p in path.iterdir()
+                           if p.is_file() and p.suffix.lower() in SUPPORTED)
+            if not found:
+                raise ValueError(f"{path} is a folder with no PDF, DOCX, TXT or MD files in it")
+            out.extend(found)
+            continue
+        if not path.exists():
+            matches = sorted(p for p in path.parent.glob(path.name + ".*")
+                             if p.suffix.lower() in SUPPORTED)
+            if len(matches) == 1:
+                out.append(matches[0])
+                continue
+            hint = (" -- did you mean one of: " + ", ".join(m.name for m in matches)
+                    if matches else "")
+            raise FileNotFoundError(f"no such file: {path}{hint}")
+        out.append(path)
+    return out
+
+
 def add_samples(paths: list[Path], samples_dir: Path) -> list[Path]:
     """Copy letters into the samples folder as plain text."""
+    letters = resolve_letters(paths)
     samples_dir.mkdir(parents=True, exist_ok=True)
     saved = []
-    for path in paths:
-        text = resume_source.read_document(Path(path)).strip()
+    for path in letters:
+        text = resume_source.read_document(path).strip()
         if len(text.split()) < 60:
-            raise ValueError(f"{Path(path).name}: under 60 words -- is this the whole letter?")
-        target = samples_dir / (re.sub(r"[^A-Za-z0-9_-]+", "_", Path(path).stem) + ".txt")
+            raise ValueError(f"{path.name}: under 60 words -- is this the whole letter?")
+        target = samples_dir / (re.sub(r"[^A-Za-z0-9_-]+", "_", path.stem) + ".txt")
         n = 2
         while target.exists() and target.read_text(encoding="utf-8").strip() != text:
             target = target.with_name(f"{target.stem}_{n}.txt")

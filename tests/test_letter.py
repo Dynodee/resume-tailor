@@ -269,3 +269,27 @@ def test_letter_pdf_and_text_copy(master, tmp_path):
     text = out.with_suffix(".txt").read_text()
     assert text.startswith("Jordan Rivera\n555-555-0142")
     assert "Best,\nJordan Rivera" in text
+
+
+def test_style_add_takes_a_folder_or_a_name_without_extension(tmp_path):
+    folder = tmp_path / "Cover letter"
+    folder.mkdir()
+    (folder / "bluefin.txt").write_text(SAMPLE_1)
+    (folder / "harborview.md").write_text(SAMPLE_2)
+    (folder / "notes.jpg").write_bytes(b"not a letter")
+    saved = style.add_samples([folder], tmp_path / "samples")
+    assert sorted(p.name for p in saved) == ["bluefin.txt", "harborview.txt"]
+    # Windows hides extensions, so "My letter" should find "My letter.txt".
+    (tmp_path / "My letter.txt").write_text(SAMPLE_1)
+    assert style.resolve_letters([tmp_path / "My letter"]) == [tmp_path / "My letter.txt"]
+    with pytest.raises(FileNotFoundError, match="no such file"):
+        style.resolve_letters([tmp_path / "missing"])
+
+
+def test_style_add_reports_problems_without_a_traceback(tmp_path, capsys):
+    from resume_tailor import cli
+
+    empty = tmp_path / "empty folder"
+    empty.mkdir()
+    assert cli.main(["style", "add", str(empty)]) == 1
+    assert "no PDF, DOCX, TXT or MD files" in capsys.readouterr().err
