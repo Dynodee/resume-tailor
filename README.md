@@ -63,9 +63,9 @@ flowchart TD
 | `extract` | Finds the ATS terms. A lexicon with alias tables does the exact matching (the built-in list plus any packs for your field); the model adds whatever the dictionary has never heard of. Priority comes from *which section* a term sat in, not from the model's opinion. Also collects the posting's *exact phrases* (see below). |
 | `gap_analysis` | For every required or preferred term your fact base does not state in so many words, decides: **reframe**, **adjacent**, **ask** or **gap** (see below). A second, skeptical pass reviews every reframe. In `--interview` mode, asks where on your resume each of the rest belongs. |
 | `tailor` | Reads what the role actually does, re-leads each kept bullet with the part that matters for it, then fits the posting's vocabulary where it reads naturally -- constrained to the fact base. |
-| `grammar` | Rule checks (including keyword-stuffing tells), then a copy-edit pass, then applies the edits and re-checks. |
+| `grammar` | Rule checks (including keyword-stuffing tells, a posting term written into several bullets, and two bullets in one role describing the same work), then a copy-edit pass, then applies the edits and re-checks. |
 | `revise` | Loops back to `tailor` with the specific gaps and errors, at most `--max-revisions` times. |
-| `render` | Writes the PDF, a plain-text twin, and the change report. |
+| `render` | Writes the PDF, a plain-text twin, and the change report. If the resume still runs over the page limit at the smallest readable type, cuts the least relevant bullets (projects first, never a whole job) and says which. |
 | `letter` | With `--letter`: writes a cover letter in your voice, every claim citing a fact. |
 | `letter_check` | Deterministic checks: invented numbers, copied sentences, details from old letters, drift from your measured style, length, stock phrases. |
 | `revise_letter` | Loops back to `letter` with what the checker found, at most twice. |
@@ -158,8 +158,8 @@ resume-tailor <url> --letter
 # see what the screen is looking for, without building anything
 resume-tailor <url> --keywords-only
 
-# force it onto one page
-resume-tailor <url> --max-pages 1
+# allow two pages (the default is one)
+resume-tailor <url> --max-pages 2
 
 # no API key, no network calls to a model
 resume-tailor --text-file jd.txt --offline

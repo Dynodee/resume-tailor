@@ -122,6 +122,12 @@ def _mechanical_fixes(resume: TailoredResume) -> int:
     return changed
 
 
+def _checks(resume: TailoredResume, state: PipelineState) -> list[GrammarIssue]:
+    """The linter, plus the checks that compare the page with the fact base."""
+    return (linter.lint(resume) + linter.repeated_work(resume)
+            + linter.spread_terms(resume, state.master, state.keywords))
+
+
 def review_and_revise(state: PipelineState, cfg: Config, llm: LLM) -> dict:
     resume = state.resume
     log = list(state.log)
@@ -129,7 +135,7 @@ def review_and_revise(state: PipelineState, cfg: Config, llm: LLM) -> dict:
         return {"errors": state.errors + ["grammar: no resume in state"]}
 
     mechanical = _mechanical_fixes(resume)
-    issues = linter.lint(resume)
+    issues = _checks(resume, state)
     log.append(f"grammar: {mechanical} mechanical fix(es), "
                f"{len(issues)} issue(s) from the rule checks")
 
@@ -156,7 +162,7 @@ def review_and_revise(state: PipelineState, cfg: Config, llm: LLM) -> dict:
         _mechanical_fixes(resume)
         log.append(f"grammar: applied {applied} copy edit(s) from the review pass")
 
-    remaining = linter.lint(resume)
+    remaining = _checks(resume, state)
     fixed = len(issues) - len(remaining)
     log.append(
         f"grammar: {len(remaining)} issue(s) remain"

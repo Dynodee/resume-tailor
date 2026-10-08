@@ -73,8 +73,9 @@ def tailor_command(argv: list[str]) -> int:
                         help="exact-phrase coverage target, percent")
     parser.add_argument("--no-bold", action="store_true",
                         help="don't bold the posting's terms in the summary and bullets")
-    parser.add_argument("--max-pages", type=int, default=2,
-                        help="shrink type slightly until the PDF fits this many pages")
+    parser.add_argument("--max-pages", type=int, default=1,
+                        help="page limit (default 1); the least relevant bullets are cut "
+                             "if the resume still runs over")
     parser.add_argument("--offline", action="store_true",
                         help="run without the model (deterministic selection only)")
     parser.add_argument("--keywords-only", action="store_true",

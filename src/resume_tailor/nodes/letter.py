@@ -71,7 +71,9 @@ REQUIREMENTS. Use the requirement notes to decide what to cover:
 SHAPE. A greeting line; three or four short paragraphs; a closing line such as
 "Sincerely," (the name is added separately). Name the company and the role. No
 headings, bullet points or placeholders such as [Company]. If no hiring
-manager is named, greet the way the samples do, or "Dear Hiring Manager,".
+manager is named, greet the company by the name in THE ROLE heading -- "<word
+the samples use> <Company> team," (for example "Hey Google team,") -- never a
+sub-team, program or department name from the posting body.
 gaps_addressed: the requirement terms the letter speaks to that are related
 experience or gaps."""
 

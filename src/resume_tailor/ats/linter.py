@@ -237,3 +237,78 @@ def summarize(issues: list[GrammarIssue]) -> str:
         if i.excerpt:
             lines.append(f"      > {i.excerpt}")
     return "\n".join(lines)
+
+
+# --- checks that need the fact base -------------------------------------------------
+
+def _grams(text: str, n: int = 3) -> set[tuple[str, ...]]:
+    words = re.findall(r"[a-z0-9+#/&'-]+", text.lower())
+    return {tuple(words[i:i + n]) for i in range(len(words) - n + 1)
+            if not all(w in _STOP or len(w) < 3 for w in words[i:i + n])}
+
+
+def repeated_work(resume: TailoredResume) -> list[GrammarIssue]:
+    """Two bullets in one role that describe the same work.
+
+    Two shared three-word phrases ("SQL and MDX", "large reporting systems")
+    within one role means the second bullet is restating the first -- usually
+    a bullet added for one keyword that re-describes existing work. Merging
+    them reads stronger and frees a line.
+    """
+    issues = []
+    for section in resume.sections:
+        if section.kind not in ("experience", "projects"):
+            continue
+        for ei, entry in enumerate(section.entries):
+            texts = [b["text"] if isinstance(b, dict) else str(b)
+                     for b in entry.get("bullets", [])]
+            grams = [_grams(t) for t in texts]
+            for j in range(len(texts)):
+                for i in range(j):
+                    shared = grams[i] & grams[j]
+                    if len(shared) >= 2:
+                        issues.append(GrammarIssue(
+                            location=f"{section.kind}[{ei}].bullets[{j}]",
+                            rule="repeated-work", severity="error",
+                            message=f"Restates bullet {i} of the same role (shared: "
+                                    + ", ".join(sorted(" ".join(g) for g in shared)[:3])
+                                    + "). Merge the two into one bullet.",
+                            excerpt=texts[j][:160]))
+                        break
+    return issues
+
+
+def spread_terms(resume: TailoredResume, master: dict, keywords) -> list[GrammarIssue]:
+    """A posting term written into more than one bullet whose fact never used it.
+
+    Putting the posting's phrase where a fact supports it is the point of
+    tailoring; putting it in two or three bullets ("Business Intelligence
+    specifications", "real-time Business Intelligence") is stuffing. A term the
+    fact already contains -- in its text or its keyword hints, which say the
+    bullet shows that skill -- does not count.
+    """
+    from .lexicon import surface_forms
+    from .phrases import literal_in
+
+    facts = {b["id"]: " | ".join([b.get("text", ""), *map(str, b.get("keywords", []))])
+             for group in ("experience", "projects")
+             for e in master.get(group, []) or [] for b in e.get("bullets", [])}
+    bullets = [(f"{s.kind}[{ei}].bullets[{bi}]", b)
+               for s in resume.sections if s.kind in ("experience", "projects")
+               for ei, e in enumerate(s.entries)
+               for bi, b in enumerate(e.get("bullets", [])) if isinstance(b, dict)]
+    issues = []
+    for kw in keywords:
+        if kw.category == "soft":
+            continue
+        forms = list(dict.fromkeys([kw.term, *surface_forms(kw.term)]))
+        added = [loc for loc, b in bullets
+                 if any(literal_in(f, b["text"]) for f in forms)
+                 and not any(literal_in(f, facts.get(b.get("source_id"), "")) for f in forms)]
+        if len(added) > 1:
+            issues.append(GrammarIssue(
+                location=", ".join(added), rule="term-spread", severity="error",
+                message=f"'{kw.term}' was written into {len(added)} bullets whose facts do not "
+                        "use it. Keep it in the one place it reads most naturally and restore "
+                        "the fact's own wording elsewhere."))
+    return issues

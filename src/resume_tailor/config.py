@@ -80,9 +80,9 @@ class Config:
     out_dir: Path | None = None
     max_revisions: int = 2
     coverage_target: float = 80.0
-    # The renderer shrinks type slightly to hit this, and never by dropping
-    # content -- what appears on the page is the tailor node's decision.
-    max_pages: int = 2
+    # The tailor sizes the resume for this, the renderer shrinks type slightly,
+    # and as a last resort the render node cuts the least relevant bullets.
+    max_pages: int = 1
     # Bold the posting's terms in the summary and bullets (render/emphasis.py).
     bold: bool = True
     # Hard cap so a pathological posting cannot blow up the prompt.

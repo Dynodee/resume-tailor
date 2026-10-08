@@ -28,14 +28,25 @@ def render(state: PipelineState, cfg: Config) -> dict:
     out_path = cfg.out_dir / ("_".join(parts) + ".pdf")
 
     resume = state.resume
-    resume.emphasis = (emphasis.plan(resume, state.keywords, state.phrases)
-                       if cfg.bold else {})
 
-    path, pages = pdf.render(resume, state.master, out_path,
-                             max_pages=cfg.max_pages)
+    def draw():
+        resume.emphasis = (emphasis.plan(resume, state.keywords, state.phrases)
+                           if cfg.bold else {})
+        return pdf.render(resume, state.master, out_path, max_pages=cfg.max_pages)
+
+    path, pages = draw()
+    # Still over at the smallest readable type: cut the least relevant bullet
+    # (the tailor orders each entry most-relevant first) and draw again.
+    cut: list[str] = []
+    while pages > cfg.max_pages and (victim := _least_relevant(resume)):
+        cut.append(victim)
+        path, pages = draw()
     log = list(state.log)
     log.append(f"render: {path.name} ({pages} page{'s' if pages != 1 else ''}), "
                f"extraction check at {path.with_suffix('.txt').name}")
+    if cut:
+        log.append(f"render: cut {len(cut)} bullet(s) to fit {cfg.max_pages} page(s): "
+                   + ", ".join(cut))
     from .tailor import master_text
 
     changes = report.compute(state.resume, state.master, state.keywords,
@@ -55,3 +66,23 @@ def render(state: PipelineState, cfg: Config) -> dict:
         errors.append(f"layout: {pages} pages, over the {cfg.max_pages}-page limit at "
                       "the smallest readable size -- cut a bullet or two")
     return {"pdf_path": str(path), "resume": resume, "log": log, "errors": errors}
+
+
+def _least_relevant(resume) -> str | None:
+    """Remove and return the id of the bullet that matters least.
+
+    Projects go first, then the oldest roles; within an entry the last bullet,
+    since the tailor puts the most relevant first. Every entry keeps at least
+    one bullet (two for the most recent role), so cutting never erases a job.
+    """
+    sections = sorted((s for s in resume.sections if s.kind in ("experience", "projects")),
+                      key=lambda s: 0 if s.kind == "projects" else 1)
+    for section in sections:
+        for ei in reversed(range(len(section.entries))):
+            entry = section.entries[ei]
+            keep = 2 if section.kind == "experience" and ei == 0 else 1
+            bullets = entry.get("bullets", [])
+            if len(bullets) > keep:
+                gone = bullets.pop()
+                return gone.get("source_id", "?") if isinstance(gone, dict) else "?"
+    return None

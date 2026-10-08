@@ -67,6 +67,15 @@ screen, and forced keywords are the fastest way to lose them. Never:
   show it through what was done instead
 - use the same word twice in one sentence
 - add a keyword to a bullet where it does not change the meaning
+- write a posting term into more than one bullet whose fact does not already
+  use it -- pick the one place it reads most naturally
+- swap the fact's own specific word for the posting's broader one: "technical
+  specifications" stays "technical specifications", not "Business Intelligence
+  specifications"
+
+ONE BULLET PER PIECE OF WORK. Two bullets in the same role must describe
+different work. If two facts describe the same work (often an added skill
+restating an existing bullet), merge them into one bullet under either id.
 
 STYLE: lead each bullet with a concrete action verb; keep the numbers already
 in the fact base; put the result before the mechanism where both are known.
@@ -134,10 +143,7 @@ matters to this employer. Mention a degree or credential only if the posting
 asks for one or it sets the candidate apart for this role. No lists of five
 skills -- the skills section does that.
 
-BUDGET: keep every role (gaps read worse than an imperfect fit), newest first,
-with two to four bullets each -- most relevant first. Projects get at most three
-bullets; a project irrelevant to this posting gets one bullet or is omitted.
-At most 15 bullets in total. In "skills", only list items that appear in the
+BUDGET: {budget} In "skills", only list items that appear in the
 fact base's skills section, ordered so the posting's terms come first, and omit
 groups irrelevant to this role."""
 
@@ -635,6 +641,20 @@ def audit_text(text: str, reference: str, message: str) -> list[str]:
     return [f"'{t}' {message}" for t in sorted(suspects)]
 
 
+def budget(max_pages: int) -> str:
+    """How much fits, said in bullets -- the renderer only shrinks type a little."""
+    if max_pages <= 1:
+        return ("ONE PAGE. Keep every role, newest first, with two or three bullets "
+                "each (four only for the current role if it carries the match) -- most "
+                "relevant first. Projects get at most two bullets; omit a project that "
+                "is irrelevant to this posting. At most 11 bullets in total, each at most "
+                "two lines (about 200 characters).")
+    return ("keep every role (gaps read worse than an imperfect fit), newest first, "
+            "with two to four bullets each -- most relevant first. Projects get at most "
+            "three bullets; a project irrelevant to this posting gets one bullet or is "
+            "omitted. At most 15 bullets in total.")
+
+
 # --- rephrasing discipline ---------------------------------------------------------
 
 def _term_forms(term: str) -> list[str]:
@@ -714,6 +734,7 @@ def tailor(state: PipelineState, cfg: Config, llm: LLM) -> dict:
         payload = llm.complete_json(
             SYSTEM,
             USER.format(
+                budget=budget(cfg.max_pages),
                 title=posting.title or "(not stated)",
                 company=posting.company or "(not stated)",
                 role_brief=_role_brief(posting),
